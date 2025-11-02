@@ -1,0 +1,89 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.dbg
+*.tmp
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+.next/
+out/
+dist/
+*.log
+.npm
+.yarn-integrity
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Docker
+*.dockerignore
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets
+*.key
+*.pem
+*.crt
+secrets/
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+*.coverage
+.nyc_output/
+
+# Build outputs
+build/
+dist/
+*.tgz
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+

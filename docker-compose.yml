@@ -1,0 +1,202 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: spm-postgres
+    environment:
+      POSTGRES_USER: spm_user
+      POSTGRES_PASSWORD: spm_pass
+      POSTGRES_DB: spm_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spm_user -d spm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: spm-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: spm-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # api-gateway: Not implemented yet
+  # Uncomment when service is ready
+  # api-gateway:
+  #   build: ./services/api-gateway
+  #   container_name: spm-api-gateway
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "5000:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ASPNETCORE_URLS=http://+:8080
+  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+  #     - Kafka__BootstrapServers=kafka:9092
+  #   networks:
+  #     - spm-network
+  #   profiles:
+  #     - api-gateway
+
+  user-service:
+    build: ./services/user-service
+    container_name: spm-user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+      - Kafka__BootstrapServers=kafka:9092
+      - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
+      - JWT__Issuer=spm-api-gateway
+      - JWT__Audience=spm-services
+    networks:
+      - spm-network
+
+  # project-service: Not implemented yet
+  # Uncomment when service is ready
+  # project-service:
+  #   build: ./services/project-service
+  #   container_name: spm-project-service
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "5002:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ASPNETCORE_URLS=http://+:8080
+  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+  #     - Kafka__BootstrapServers=kafka:9092
+  #     - Gemini__ApiKey=${GEMINI_API_KEY}
+  #   networks:
+  #     - spm-network
+  #   profiles:
+  #     - project-service
+
+  # file-service: Not implemented yet
+  # Uncomment when service is ready
+  # file-service:
+  #   build: ./services/file-service
+  #   container_name: spm-file-service
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "5003:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ASPNETCORE_URLS=http://+:8080
+  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+  #     - Kafka__BootstrapServers=kafka:9092
+  #     - FileStorage__Path=/app/storage
+  #   volumes:
+  #     - file_storage:/app/storage
+  #   networks:
+  #     - spm-network
+  #   profiles:
+  #     - file-service
+
+  # notification-service: Not implemented yet
+  # Uncomment when service is ready
+  # notification-service:
+  #   build: ./services/notification-service
+  #   container_name: spm-notification-service
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "5004:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ASPNETCORE_URLS=http://+:8080
+  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+  #     - Kafka__BootstrapServers=kafka:9092
+  #   networks:
+  #     - spm-network
+  #   profiles:
+  #     - notification-service
+
+  ai-service:
+    build: ./services/ai-service
+    container_name: spm-ai-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5005:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=postgresql://spm_user:spm_pass@postgres:5432/spm_db
+      - PYTHONUNBUFFERED=1
+    networks:
+      - spm-network
+
+  frontend:
+    build: ./frontend
+    container_name: spm-frontend
+    # depends_on:
+    #   - api-gateway  # Commented out because api-gateway not implemented yet
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5001 # Direct to user-service for now
+      - NODE_ENV=development
+    networks:
+      - spm-network
+
+volumes:
+  postgres_data:
+  file_storage:
+
+networks:
+  spm-network:
+    driver: bridge

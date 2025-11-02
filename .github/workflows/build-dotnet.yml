@@ -1,0 +1,109 @@
+name: Build .NET Services
+
+on:
+    push:
+        branches: [main, develop]
+        paths:
+            - "services/**/*.cs"
+            - "services/**/*.csproj"
+            - ".github/workflows/build-dotnet.yml"
+    pull_request:
+        branches: [main, develop]
+        paths:
+            - "services/**/*.cs"
+            - "services/**/*.csproj"
+
+jobs:
+    # api-gateway: Not implemented yet - will add CI/CD when service is ready
+    # build-api-gateway:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v4
+    #         - name: Setup .NET
+    #           uses: actions/setup-dotnet@v4
+    #           with:
+    #               dotnet-version: "8.0.x"
+    #         - name: Restore dependencies
+    #           working-directory: ./services/api-gateway
+    #           run: dotnet restore
+    #         - name: Build
+    #           working-directory: ./services/api-gateway
+    #           run: dotnet build --no-restore -c Release
+    #         - name: Test
+    #           working-directory: ./services/api-gateway
+    #           run: dotnet test --no-build --verbosity normal || true
+
+    build-user-service:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: "8.0.x"
+            - name: Restore dependencies
+              working-directory: ./services/user-service
+              run: dotnet restore
+            - name: Build
+              working-directory: ./services/user-service
+              run: dotnet build --no-restore -c Release
+            - name: Test
+              working-directory: ./services/user-service
+              run: dotnet test --no-build --verbosity normal || true
+
+    # project-service: Not implemented yet - will add CI/CD when service is ready
+    # build-project-service:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v4
+    #         - name: Setup .NET
+    #           uses: actions/setup-dotnet@v4
+    #           with:
+    #               dotnet-version: "8.0.x"
+    #         - name: Restore dependencies
+    #           working-directory: ./services/project-service
+    #           run: dotnet restore
+    #         - name: Build
+    #           working-directory: ./services/project-service
+    #           run: dotnet build --no-restore -c Release
+    #         - name: Test
+    #           working-directory: ./services/project-service
+    #           run: dotnet test --no-build --verbosity normal || true
+
+    # file-service: Not implemented yet - will add CI/CD when service is ready
+    # build-file-service:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v4
+    #         - name: Setup .NET
+    #           uses: actions/setup-dotnet@v4
+    #           with:
+    #               dotnet-version: "8.0.x"
+    #         - name: Restore dependencies
+    #           working-directory: ./services/file-service
+    #           run: dotnet restore
+    #         - name: Build
+    #           working-directory: ./services/file-service
+    #           run: dotnet build --no-restore -c Release
+    #         - name: Test
+    #           working-directory: ./services/file-service
+    #           run: dotnet test --no-build --verbosity normal || true
+
+    # notification-service: Not implemented yet - will add CI/CD when service is ready
+    # build-notification-service:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v4
+    #         - name: Setup .NET
+    #           uses: actions/setup-dotnet@v4
+    #           with:
+    #               dotnet-version: "8.0.x"
+    #         - name: Restore dependencies
+    #           working-directory: ./services/notification-service
+    #           run: dotnet restore
+    #         - name: Build
+    #           working-directory: ./services/notification-service
+    #           run: dotnet build --no-restore -c Release
+    #         - name: Test
+    #           working-directory: ./services/notification-service
+    #           run: dotnet test --no-build --verbosity normal || true

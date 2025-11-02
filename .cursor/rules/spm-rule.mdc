@@ -1,0 +1,1007 @@
+---
+alwaysApply: true
+---
+
+# SPM Code Style Guide
+
+## 🏗️ Architecture Principles
+
+### Clean Architecture Layers
+
+- **Controllers** → HTTP handling only, delegate to Services
+- **Services** → Business logic, orchestration
+- **Repositories** → Data access, database operations
+- **Models** → Domain entities (POCOs)
+- **DTOs** → API contracts (Request/Response)
+- **Extensions** → Helper methods, utilities
+
+### Dependency Flow
+
+```
+Controllers → Services → Repositories → Data (DbContext)
+```
+
+**Controllers MUST NOT:**
+
+- Access DbContext directly
+- Contain business logic
+- Call repositories directly (NEVER - always use Services)
+
+## 📝 Naming Conventions
+
+### Classes & Interfaces
+
+- **Interfaces**: `I` prefix (e.g., `IUserRepository`, `IAuthService`)
+- **Classes**: PascalCase (e.g., `UserRepository`, `AuthService`)
+- **Controllers**: `*Controller` suffix (e.g., `AuthController`)
+- **Repositories**: `*Repository` suffix (e.g., `UserRepository`)
+- **Services**: `*Service` suffix (e.g., `AuthService`)
+- **DTOs**: `*Request`, `*Response`, `*Dto` suffix (e.g., `RegisterRequest`, `AuthResponse`)
+
+### Files & Folders
+
+- **Folders**: PascalCase, singular (e.g., `Services/`, `Repositories/`, `Models/`)
+- **Files**: Match class name exactly (e.g., `UserRepository.cs` contains `UserRepository`)
+
+### Variables & Fields
+
+- **Private fields**: `_camelCase` with underscore prefix (e.g., `_userRepository`, `_logger`)
+- **Local variables**: `camelCase` (e.g., `var user = ...`)
+- **Properties**: `PascalCase` (e.g., `public string Email { get; set; }`)
+- **Constants**: `PascalCase` (e.g., `const int MaxRetries = 3`)
+- **Async methods**: `*Async` suffix (e.g., `GetUserAsync`, `CreateUserAsync`)
+
+## 🔧 Code Organization
+
+### Using Statements Order
+
+```csharp
+// 1. System namespaces
+using System;
+using System.Threading.Tasks;
+
+// 2. Third-party libraries
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+// 3. Application namespaces (alphabetical)
+using user_service.Data;
+using user_service.DTOs;
+using user_service.Models;
+using user_service.Repositories;
+using user_service.Services;
+```
+
+### Namespace Declaration
+
+**ALWAYS use file-scoped namespaces:**
+
+```csharp
+namespace user_service.Services;
+
+public class AuthService
+{
+    // ...
+}
+```
+
+**NOT:**
+
+```csharp
+namespace user_service.Services
+{
+    public class AuthService
+    {
+        // ...
+    }
+}
+```
+
+### Class Structure Order
+
+```csharp
+public class ExampleService
+{
+    // 1. Private fields
+    private readonly IRepository _repository;
+    private readonly ILogger<ExampleService> _logger;
+
+    // 2. Constructor
+    public ExampleService(IRepository repository, ILogger<ExampleService> logger)
+    {
+        _repository = repository;
+        _logger = logger;
+    }
+
+    // 3. Public methods
+    public async Task<Result> DoSomethingAsync()
+    {
+        // ...
+    }
+
+    // 4. Private helper methods
+    private void HelperMethod()
+    {
+        // ...
+    }
+}
+```
+
+## 🎯 Controller Guidelines
+
+### Controller Responsibilities
+
+- **DO**: Handle HTTP requests/responses
+- **DO**: Validate request models (via FluentValidation)
+- **DO**: Call services for business logic (ALWAYS - no exceptions)
+- **DO**: Map responses using extension methods or AutoMapper
+- **DON'T**: Contain business logic
+- **DON'T**: Access DbContext directly
+- **DON'T**: Call repositories directly (NEVER - always through Services)
+
+**⚠️ No Exceptions Rule:**
+Even simple read operations must go through Services. This maintains architectural consistency and prevents the "slippery slope" where simple reads become complex operations with caching, authorization, or filtering logic that should be in Services.
+
+### Controller Pattern
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class ExampleController : ControllerBase
+{
+    private readonly IExampleService _service;
+
+    public ExampleController(IExampleService service)
+    {
+        _service = service;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateRequest request)
+    {
+        var result = await _service.CreateAsync(request);
+
+        if (!result.Success)
+        {
+            return this.BadRequestResponse(result.ErrorMessage!, result.ErrorCode);
+        }
+
+        return this.OkResponse(result.Data, "Created successfully");
+    }
+}
+```
+
+### Response Helpers
+
+Use extension methods for consistent responses:
+
+- `this.OkResponse(data, message)`
+- `this.BadRequestResponse(message, errorCode)`
+- `this.UnauthorizedResponse(message, errorCode)`
+- `this.NotFoundResponse(message, errorCode)`
+
+## 🔄 Service Layer Guidelines
+
+### Service Responsibilities
+
+- **DO**: Implement business logic
+- **DO**: Orchestrate multiple repositories
+- **DO**: Handle transactions
+- **DO**: Publish events (Kafka)
+- **DO**: Validate business rules
+- **DON'T**: Handle HTTP concerns
+- **DON'T**: Return HTTP status codes
+
+### Service Pattern
+
+```csharp
+public class ExampleService : IExampleService
+{
+    private readonly IRepository _repository;
+    private readonly ILogger<ExampleService> _logger;
+    private readonly UserDbContext _dbContext; // For transaction management
+
+    public ExampleService(
+        IRepository repository,
+        ILogger<ExampleService> logger,
+        UserDbContext dbContext)
+    {
+        _repository = repository;
+        _logger = logger;
+        _dbContext = dbContext;
+    }
+
+    public async Task<Result> DoSomethingAsync(Request request)
+    {
+        // Validation
+        if (string.IsNullOrWhiteSpace(request.Value))
+        {
+            return Result.FailResult("Invalid value", "INVALID_VALUE");
+        }
+
+        // Use transaction for multiple operations
+        using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            // Business logic - repositories only modify context, don't save
+            var entity = _repository.CreateAsync(/* ... */); // Note: No await, just adds to context
+
+            // Save all changes in single transaction
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            // Events after transaction (after commit)
+            await _eventPublisher.PublishAsync(/* ... */);
+
+            return Result.SuccessResult(entity);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Error doing something");
+            throw; // Handled by middleware
+        }
+    }
+}
+```
+
+### Unit of Work Pattern (Alternative - Recommended for Complex Services)
+
+For services with many repository operations, consider Unit of Work:
+
+```csharp
+public interface IUnitOfWork
+{
+    IUserRepository Users { get; }
+    IProjectRepository Projects { get; }
+    Task<int> SaveChangesAsync();
+    Task BeginTransactionAsync();
+    Task CommitTransactionAsync();
+    Task RollbackTransactionAsync();
+}
+
+public class UnitOfWork : IUnitOfWork
+{
+    private readonly UserDbContext _context;
+
+    public UnitOfWork(UserDbContext context)
+    {
+        _context = context;
+        Users = new UserRepository(_context);
+        Projects = new ProjectRepository(_context);
+    }
+
+    public IUserRepository Users { get; }
+    public IProjectRepository Projects { get; }
+
+    public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
+
+    public async Task BeginTransactionAsync() => await _context.Database.BeginTransactionAsync();
+    // ... commit, rollback
+}
+
+// Service using Unit of Work
+public class ExampleService : IExampleService
+{
+    private readonly IUnitOfWork _unitOfWork;
+
+    public async Task<Result> DoSomethingAsync(Request request)
+    {
+        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var user = await _unitOfWork.Users.CreateAsync(/* ... */);
+            var project = await _unitOfWork.Projects.CreateAsync(/* ... */);
+
+            await _unitOfWork.SaveChangesAsync(); // Single save for all changes
+            await transaction.CommitAsync();
+
+            return Result.SuccessResult(/* ... */);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+}
+```
+
+**Note:**
+
+- For simpler services (1-2 repositories), injecting `DbContext` directly is acceptable
+- Use Unit of Work when you have 3+ repositories or complex multi-repository transactions
+- The current SPM pattern uses `DbContext` injection in Services for transaction management, which is simpler and sufficient for most cases
+
+### Result Pattern
+
+Services return Result objects, not exceptions for business logic:
+
+```csharp
+public class Result
+{
+    public bool Success { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string? ErrorCode { get; set; }
+
+    public static Result SuccessResult() { /* ... */ }
+    public static Result FailResult(string message, string code) { /* ... */ }
+}
+```
+
+## 📦 Repository Guidelines
+
+### Repository Responsibilities
+
+- **DO**: Handle database operations (queries, Add, Update, Remove)
+- **DO**: Use async/await **ONLY for read operations** (I/O operations)
+- **DO**: Return nullable types for Get methods (`Task<User?>`)
+- **DON'T**: Contain business logic
+- **DON'T**: Call `SaveChangesAsync()` - Use Unit of Work Pattern
+- **DON'T**: Handle transactions (Service/UnitOfWork does this)
+- **DON'T**: Use `async` keyword for write operations (Create, Update) - they're synchronous in-memory operations
+
+### Repository Pattern (WITHOUT SaveChanges)
+
+**Important Distinction:**
+
+- **Read operations** (Get, Find, Exists, Count): Asynchronous I/O operations → **USE async/await**
+- **Write operations** (Create, Update): Synchronous in-memory operations → **NO async keyword, return Task.FromResult**
+- **Delete operations**: Hybrid - need async to read entity first, then synchronous remove
+
+```csharp
+public class UserRepository : IUserRepository
+{
+    private readonly UserDbContext _context;
+
+    public UserRepository(UserDbContext context)
+    {
+        _context = context;
+    }
+
+    // ✅ READ operations - Asynchronous (I/O), async/await REQUIRED
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _context.Users.FindAsync(id);
+    }
+
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant());
+    }
+
+    public async Task<bool> ExistsByEmailAsync(string email)
+    {
+        return await _context.Users
+            .AnyAsync(u => u.Email == email.ToLowerInvariant());
+    }
+
+    // ✅ WRITE operations - Synchronous (in-memory), NO async keyword needed
+    public Task<User> CreateAsync(User user)
+    {
+        _context.Users.Add(user); // Synchronous operation
+        return Task.FromResult(user);
+    }
+
+    public Task<User> UpdateAsync(User user)
+    {
+        user.UpdatedAt = DateTime.UtcNow;
+        _context.Users.Update(user); // Synchronous operation
+        return Task.FromResult(user);
+    }
+
+    // ✅ DELETE operations - Hybrid (async read + sync remove)
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var user = await GetByIdAsync(id); // Async read
+        if (user == null)
+            return false;
+
+        _context.Users.Remove(user); // Synchronous operation
+        return true;
+    }
+}
+```
+
+**Summary Table:**
+
+| Operation Type     | DbContext Method                                                            | Nature                  | Use async/await?                                        | Example                                                      |
+| ------------------ | --------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| **READ**           | `FindAsync`, `FirstOrDefaultAsync`, `ToListAsync`, `AnyAsync`, `CountAsync` | Asynchronous (I/O)      | ✅ **YES, Required**                                    | `await _context.Users.FindAsync(id)`                         |
+| **WRITE (Create)** | `Add`                                                                       | Synchronous (in-memory) | ❌ **NO** - return `Task.FromResult`                    | `_context.Users.Add(user); return Task.FromResult(user);`    |
+| **WRITE (Update)** | `Update`                                                                    | Synchronous (in-memory) | ❌ **NO** - return `Task.FromResult`                    | `_context.Users.Update(user); return Task.FromResult(user);` |
+| **WRITE (Remove)** | `Remove`                                                                    | Synchronous (in-memory) | ❌ **NO** - but method needs async to read entity first | `await GetByIdAsync(id); _context.Users.Remove(user);`       |
+| **COMMIT**         | `SaveChangesAsync`                                                          | Asynchronous (I/O)      | ✅ **YES, Required** (called in Service/UnitOfWork)     | `await _unitOfWork.SaveChangesAsync();`                      |
+
+### ⚠️ Why No SaveChanges in Repository?
+
+If repositories call `SaveChangesAsync()`, multiple repository operations in a Service cannot be wrapped in a single transaction:
+
+```csharp
+// ❌ WRONG - Each repository saves separately
+public async Task<Result> CreateUserWithProfileAsync(User user, Profile profile)
+{
+    await _userRepository.CreateAsync(user);      // Transaction 1 committed
+    await _profileRepository.CreateAsync(profile); // Transaction 2 - fails, but user already saved!
+    // No way to rollback user creation
+}
+
+// ✅ CORRECT - Single transaction via Unit of Work
+public async Task<Result> CreateUserWithProfileAsync(User user, Profile profile)
+{
+    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+    try
+    {
+        _userRepository.CreateAsync(user);      // Only adds to context
+        _profileRepository.CreateAsync(profile); // Only adds to context
+        await _dbContext.SaveChangesAsync();     // Single transaction commit
+        await transaction.CommitAsync();
+    }
+    catch
+    {
+        await transaction.RollbackAsync();
+        throw;
+    }
+}
+```
+
+### Naming Conventions for Repository Methods
+
+- `Get*Async()` - Returns single entity (`Task<Entity?>`)
+- `GetAll*Async()` - Returns collection (`Task<IEnumerable<Entity>>`)
+- `Exists*Async()` - Returns bool (`Task<bool>`)
+- `CreateAsync()` - Creates new entity
+- `UpdateAsync()` - Updates existing entity
+- `DeleteAsync()` - Deletes entity
+
+## 🗺️ DTO Mapping
+
+### Manual Mapping (Small Projects)
+
+```csharp
+// In Controller or Service
+var dto = new UserDto
+{
+    Id = user.Id,
+    Email = user.Email,
+    FullName = user.FullName
+};
+```
+
+### AutoMapper (Recommended for Large Projects)
+
+```csharp
+// Install: dotnet add package AutoMapper.Extensions.Microsoft.DependencyInjection
+
+// Profile configuration
+public class MappingProfile : Profile
+{
+    public MappingProfile()
+    {
+        CreateMap<User, UserDto>();
+        CreateMap<RegisterRequest, User>()
+            .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
+    }
+}
+
+// Registration in Program.cs
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+// Usage in Service
+public class AuthService
+{
+    private readonly IMapper _mapper;
+
+    public AuthService(IMapper mapper)
+    {
+        _mapper = mapper;
+    }
+
+    public UserDto MapToDto(User user)
+    {
+        return _mapper.Map<UserDto>(user);
+    }
+}
+```
+
+**Benefits:**
+
+- Reduces boilerplate code
+- Centralized mapping configuration
+- Easier to maintain
+- Type-safe with compile-time checking
+
+## 🏷️ Model & DTO Guidelines
+
+### Models (Domain Entities)
+
+- Use in `Models/` folder
+- Represent database tables
+- Include navigation properties
+- Use `DateTime.UtcNow` for timestamps
+- Default values for properties
+
+```csharp
+public class User
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Email { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public ICollection<EmailVerification> EmailVerifications { get; set; } = new List<EmailVerification>();
+}
+```
+
+### DTOs (Data Transfer Objects)
+
+- Use in `DTOs/` folder
+- Separate Request/Response models
+- **Never expose domain entities directly**
+- Use nullable reference types appropriately
+
+```csharp
+public class RegisterRequest
+{
+    public string Email { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string? FullName { get; set; } // Optional
+}
+```
+
+## ⚡ Async/Await Patterns
+
+### Always Use Async for I/O Operations
+
+```csharp
+// ✅ CORRECT
+public async Task<User?> GetUserAsync(Guid id)
+{
+    return await _context.Users.FindAsync(id);
+}
+
+// ❌ WRONG
+public User? GetUser(Guid id)
+{
+    return _context.Users.Find(id);
+}
+```
+
+### ConfigureAwait
+
+- **DO NOT** use `ConfigureAwait(false)` in application code
+- Only use in library code
+
+### Task Return Types
+
+```csharp
+// Single result (nullable)
+Task<User?>
+
+// Collection
+Task<IEnumerable<User>>
+
+// Boolean
+Task<bool>
+
+// Void
+Task
+```
+
+## ✅ Validation
+
+### FluentValidation
+
+- Use FluentValidation for request validation
+- Validators in `Validators/` folder
+- Register validators in `Program.cs`
+
+```csharp
+public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+{
+    public RegisterRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email is required")
+            .EmailAddress().WithMessage("Invalid email format");
+
+        RuleFor(x => x.Password)
+            .MinimumLength(6).WithMessage("Password must be at least 6 characters");
+    }
+}
+```
+
+### Business Rule Validation
+
+- In Services, not Controllers
+- Return Result objects for validation failures
+- Use exception only for unexpected errors
+
+## 🚨 Error Handling
+
+### Exception Handling
+
+- Use middleware for global exception handling
+- Services throw exceptions for unexpected errors
+- Business logic errors return Result objects
+
+### Logging
+
+```csharp
+// Information
+_logger.LogInformation("User registered: {Email}", email);
+
+// Warning
+_logger.LogWarning("Invalid attempt: {Email}", email);
+
+// Error
+_logger.LogError(ex, "Error registering user: {Email}", email);
+
+// Use structured logging with parameters
+_logger.LogError(ex, "Error in {Method} for {UserId}", nameof(CreateUserAsync), userId);
+```
+
+## 🔗 Dependency Injection
+
+### Registration Order in Program.cs
+
+```csharp
+// 1. DbContext
+builder.Services.AddDbContext<UserDbContext>(/* ... */);
+
+// 2. Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// 3. Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// 4. External services
+builder.Services.AddScoped<IKafkaProducerService, KafkaProducerService>();
+```
+
+### Lifetime
+
+- **Scoped**: Repositories, Services (default for services)
+- **Singleton**: Configuration, Logging
+- **Transient**: Avoid unless necessary
+
+### Constructor Injection
+
+- **ALWAYS** use constructor injection
+- **ALWAYS** use interfaces, not concrete types
+- Keep constructor simple (max 5-6 dependencies)
+
+## 📋 Code Formatting
+
+### Indentation & Spacing
+
+- Use 4 spaces (not tabs)
+- No trailing whitespace
+- One blank line between methods
+- One blank line between logical sections
+
+### Braces
+
+```csharp
+// ✅ CORRECT - Allman style (C# convention)
+if (condition)
+{
+    // ...
+}
+
+// ❌ WRONG - K&R style
+if (condition) {
+    // ...
+}
+```
+
+### Line Length
+
+- Keep lines under 120 characters
+- Break long lines at logical points
+
+### String Formatting
+
+```csharp
+// ✅ CORRECT - String interpolation
+_logger.LogInformation($"User {userId} registered");
+
+// ✅ CORRECT - Structured logging
+_logger.LogInformation("User {UserId} registered", userId);
+
+// ❌ WRONG - String concatenation
+_logger.LogInformation("User " + userId + " registered");
+```
+
+## 🔐 Security Guidelines
+
+### Sensitive Data
+
+- **NEVER** log passwords or tokens
+- **NEVER** expose password hashes in responses
+- Use `[JsonIgnore]` for sensitive properties in DTOs
+
+### Input Validation
+
+- Validate all inputs
+- Sanitize user input
+- Use parameterized queries (EF Core handles this)
+
+### DateTime
+
+- **ALWAYS** use `DateTime.UtcNow`, never `DateTime.Now`
+
+## 🧪 Testing Guidelines
+
+### Naming Test Methods
+
+```
+MethodName_Scenario_ExpectedBehavior
+```
+
+Example:
+
+```csharp
+RegisterAsync_ValidRequest_ReturnsSuccess()
+RegisterAsync_DuplicateEmail_ReturnsFailure()
+```
+
+### Mocking
+
+- Mock interfaces, not concrete classes
+- Use Moq or NSubstitute
+- Mock repositories in service tests
+
+## 📚 Comments & Documentation
+
+### XML Documentation
+
+```csharp
+/// <summary>
+/// Registers a new user in the system.
+/// </summary>
+/// <param name="request">Registration request containing user details</param>
+/// <returns>Registration result with user ID and verification token</returns>
+public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
+{
+    // ...
+}
+```
+
+### Inline Comments
+
+- Use comments to explain **why**, not **what**
+- Remove commented-out code
+- Keep comments up-to-date
+
+## 🚫 Anti-Patterns to Avoid
+
+1. **Fat Controllers** - Controllers should be thin
+2. **God Objects** - Classes doing too much
+3. **Anemic Domain Models** - Models with only getters/setters
+4. **Circular Dependencies** - Avoid at all costs
+5. **Synchronous I/O** - Always use async
+6. **N+1 Queries** - Use `Include()` or projection
+7. **Magic Numbers** - Use constants or configuration
+8. **Hard-coded Strings** - Use constants or resources
+9. **Swallowed Exceptions** - Always log exceptions
+10. **Direct DbContext Access in Controllers** - Use services
+
+## ✅ Code Review Checklist
+
+- [ ] Follows naming conventions
+- [ ] Uses async/await correctly
+- [ ] No business logic in controllers
+- [ ] Proper error handling
+- [ ] Logging for errors
+- [ ] Input validation
+- [ ] No hard-coded values
+- [ ] Follows repository pattern
+- [ ] Uses DTOs, not entities in API
+- [ ] Proper dependency injection
+- [ ] Transaction handling for multi-step operations
+- [ ] Events published after transactions
+
+---
+
+## 🔄 Microservices-Specific Guidelines
+
+### This Rule Applies to ALL Microservices
+
+All .NET microservices in the SPM system follow these same patterns:
+
+- **user-service** - Authentication & user management
+- **project-service** - Projects, tasks, comments with pgvector
+- **file-service** - File uploads and storage
+- **notification-service** - Real-time notifications with SignalR
+- **api-gateway** - Routing and API aggregation
+
+### Service-Specific Extensions
+
+#### Project Service (pgvector & Embeddings)
+
+```csharp
+// Embedding Service Pattern
+public interface IEmbeddingService
+{
+    Task<float[]> GenerateEmbeddingAsync(string text);
+    Task<IEnumerable<SearchResult>> SearchSimilarAsync(float[] queryEmbedding, int topK);
+}
+
+// Vector operations in Repository
+public async Task<IEnumerable<Task>> SearchSimilarTasksAsync(float[] queryEmbedding, int topK)
+{
+    return await _context.Tasks
+        .FromSqlRaw(@"
+            SELECT t.* FROM tasks t
+            JOIN task_embeddings te ON t.id = te.task_id
+            ORDER BY te.embedding <=> {0}::vector
+            LIMIT {1}", queryEmbedding, topK)
+        .ToListAsync();
+}
+```
+
+**Guidelines:**
+
+- Embeddings generated in Service layer, stored in Repository
+- Use `vector_cosine_ops` for similarity search
+- Auto-generate embeddings on task/comment create/update
+- Store embeddings in separate tables (`task_embeddings`, `comment_embeddings`)
+
+#### Notification Service (SignalR)
+
+```csharp
+// SignalR Hub Pattern
+public class NotificationHub : Hub
+{
+    public async Task JoinUserGroup(string userId)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
+    }
+}
+
+// Notification Service
+public class NotificationService : INotificationService
+{
+    private readonly IHubContext<NotificationHub> _hubContext;
+
+    public async Task SendToUserAsync(Guid userId, Notification notification)
+    {
+        await _hubContext.Clients
+            .Group($"user_{userId}")
+            .SendAsync("ReceiveNotification", notification);
+    }
+}
+```
+
+**Guidelines:**
+
+- SignalR Hub in separate class
+- Group management for user-specific notifications
+- Publish notifications after database save
+- Handle connection lifecycle properly
+
+#### File Service (File Uploads)
+
+```csharp
+// File Service Pattern
+public async Task<FileResult> UploadFileAsync(IFormFile file, Guid userId)
+{
+    // Validate file
+    ValidateFile(file);
+
+    // Generate unique filename
+    var storedName = GenerateUniqueFileName(file.FileName);
+    var storagePath = Path.Combine(_storagePath, storedName);
+
+    // Save file
+    await SaveFileAsync(file, storagePath);
+
+    // Save metadata
+    var fileEntity = new File { /* ... */ };
+    return await _repository.CreateAsync(fileEntity);
+}
+```
+
+**Guidelines:**
+
+- Never trust file names from clients
+- Validate file size and MIME type
+- Store files outside web root
+- Save metadata in transaction before file write
+- Use async I/O for file operations
+
+#### API Gateway (YARP)
+
+- Routing configuration only
+- JWT validation
+- Rate limiting
+- Request/response transformation
+- No business logic
+
+### Shared Patterns Across All Services
+
+#### Kafka Event Publishing
+
+```csharp
+// ✅ CORRECT - Publish after transaction commit
+using var transaction = await _dbContext.Database.BeginTransactionAsync();
+try
+{
+    _repository.CreateAsync(entity); // Only modifies context
+    await _dbContext.SaveChangesAsync(); // Save changes
+    await transaction.CommitAsync(); // Commit transaction
+
+    // Publish AFTER commit (outside transaction)
+    await _kafkaProducer.PublishAsync("event.name", payload);
+}
+catch
+{
+    await transaction.RollbackAsync();
+    throw;
+}
+
+// ❌ WRONG - Publishing inside transaction (could rollback)
+using var transaction = await _dbContext.Database.BeginTransactionAsync();
+try
+{
+    _repository.CreateAsync(entity);
+    await _dbContext.SaveChangesAsync();
+    await _kafkaProducer.PublishAsync("event.name", payload); // Could rollback if commit fails!
+    await transaction.CommitAsync();
+}
+catch
+{
+    await transaction.RollbackAsync(); // Event published but transaction rolled back = inconsistency!
+    throw;
+}
+```
+
+**Key Principles:**
+
+1. Repository methods modify context but DON'T call `SaveChangesAsync()`
+2. Service calls `SaveChangesAsync()` once after all repository operations
+3. Commit transaction before publishing events
+4. Events published outside transaction scope to avoid rollback issues
+
+#### Database Schema
+
+- Each service uses its own schema (`spm_user`, `spm_project`, `spm_file`, `spm_notification`)
+- Shared database, isolated schemas
+- Cross-schema queries only when necessary
+
+#### Error Codes
+
+Use consistent error codes across services:
+
+- `EMAIL_EXISTS`, `INVALID_CREDENTIALS`, `NOT_FOUND`
+- Format: `UPPER_SNAKE_CASE`
+- Document in API documentation
+
+### Migration Strategy
+
+When creating a new service:
+
+1. Copy structure from `user-service` as template
+2. Update namespace (e.g., `project_service`)
+3. Follow same folder structure
+4. Implement Repository pattern
+5. Create Service layer with business logic
+6. Keep Controllers thin
+
+### Testing Strategy
+
+All services should have:
+
+- Unit tests for Services (mock repositories)
+- Unit tests for Repositories (InMemory database)
+- Integration tests for Controllers
+- Test coverage > 80%
+
+---
+
+**Remember**: Code should be readable, maintainable, and testable. When in doubt, prioritize clarity over cleverness.
+
+**This rule applies universally to all .NET microservices in the SPM system.**
