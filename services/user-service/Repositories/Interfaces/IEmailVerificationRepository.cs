@@ -10,3 +10,4 @@ public interface IEmailVerificationRepository
     Task<bool> DeleteAsync(Guid id);
 }
 
+

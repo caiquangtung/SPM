@@ -43,6 +43,9 @@ Controllers → Services → Repositories → Data (DbContext)
 - **Folders**: PascalCase, singular (e.g., `Services/`, `Repositories/`, `Models/`)
 - **Files**: Match class name exactly (e.g., `UserRepository.cs` contains `UserRepository`)
 - **Service interfaces folder**: Place service interfaces under `Services/Interfaces/` to separate contracts from implementations
+- **Repository interfaces folder**: Place repository interfaces under `Repositories/Interfaces/` to separate contracts from implementations
+- **DTO feature folders**: Group DTOs by feature under `DTOs/<Feature>/` (e.g., `DTOs/Auth/`) while keeping the namespace consistent (e.g., `user_service.DTOs`) to avoid refactor churn
+- **DTO one-type-per-file**: Each DTO must be defined in its own file (e.g., `RegisterRequest.cs`, `LoginRequest.cs`)
 
 Example:
 
@@ -57,6 +60,24 @@ Services/
   LoginService.cs
   TokenManagementService.cs
   AuthService.cs
+
+Repositories/
+  Interfaces/
+    IUserRepository.cs
+    IEmailVerificationRepository.cs
+    IRefreshTokenRepository.cs
+  UserRepository.cs
+  EmailVerificationRepository.cs
+  RefreshTokenRepository.cs
+
+DTOs/
+  Auth/
+    RegisterRequest.cs
+    LoginRequest.cs
+    RefreshTokenRequest.cs
+    VerifyEmailRequest.cs
+    AuthResults.cs
+  ApiResponse.cs
 ```
 
 ### Variables & Fields
@@ -762,6 +783,8 @@ Task
 
 - Use FluentValidation for request validation
 - Validators in `Validators/` folder
+- One validator per DTO (filename `<DtoName>Validator.cs`, class `<DtoName>Validator`)
+- Reuse common rules via `Validators/ValidationExtensions.cs` (optional but recommended)
 - Register validators in `Program.cs`
 
 ```csharp
@@ -770,11 +793,10 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
     public RegisterRequestValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required")
-            .EmailAddress().WithMessage("Invalid email format");
+            .RequiredEmail();
 
         RuleFor(x => x.Password)
-            .MinimumLength(6).WithMessage("Password must be at least 6 characters");
+            .RequiredPassword(6);
     }
 }
 ```
