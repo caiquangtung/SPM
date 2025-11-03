@@ -42,6 +42,22 @@ Controllers → Services → Repositories → Data (DbContext)
 
 - **Folders**: PascalCase, singular (e.g., `Services/`, `Repositories/`, `Models/`)
 - **Files**: Match class name exactly (e.g., `UserRepository.cs` contains `UserRepository`)
+- **Service interfaces folder**: Place service interfaces under `Services/Interfaces/` to separate contracts from implementations
+
+Example:
+
+```
+Services/
+  Interfaces/
+    IRegistrationService.cs
+    ILoginService.cs
+    ITokenManagementService.cs
+    IAuthService.cs
+  RegistrationService.cs
+  LoginService.cs
+  TokenManagementService.cs
+  AuthService.cs
+```
 
 ### Variables & Fields
 
@@ -312,6 +328,156 @@ public class ExampleService : IExampleService
 - For simpler services (1-2 repositories), injecting `DbContext` directly is acceptable
 - Use Unit of Work when you have 3+ repositories or complex multi-repository transactions
 - The current SPM pattern uses `DbContext` injection in Services for transaction management, which is simpler and sufficient for most cases
+
+### Service Granularity and Refactoring (Avoiding Over-Injection)
+
+**Principle:** Services should be highly cohesive and adhere to the Single Responsibility Principle (SRP). A service should be responsible for one single area of business functionality. The primary goal of splitting a service is **NOT code reuse**, but **improved maintainability, testability, and clarity**.
+
+#### The Problem: Constructor Over-Injection
+
+A common "code smell" is a service constructor with too many injected dependencies. This indicates the service is likely doing too much (a "God Service") and violating SRP.
+
+```csharp
+// ❌ ANTI-PATTERN: This service has too many responsibilities
+public class AuthService : IAuthService
+{
+    // 9 dependencies is a clear signal to refactor
+    public AuthService(
+        IUserRepository userRepository,
+        IEmailVerificationRepository emailVerificationRepository,
+        IRefreshTokenRepository refreshTokenRepository,
+        IPasswordService passwordService,
+        ITokenService tokenService,
+        IKafkaProducerService kafkaProducer,
+        IConfiguration configuration,
+        ILogger<AuthService> logger,
+        IUnitOfWork unitOfWork)
+    {
+        // ...
+    }
+
+    public Task<RegisterResult> RegisterAsync(RegisterRequest request) { /* ... */ }
+    public Task<VerifyEmailResult> VerifyEmailAsync(string token) { /* ... */ }
+    public Task<AuthResponse> LoginAsync(LoginRequest request) { /* ... */ }
+    public Task<AuthResponse> RefreshTokenAsync(string refreshToken) { /* ... */ }
+}
+```
+
+#### When to Refactor
+
+Consider refactoring a service when you observe these signs:
+
+1. **High Dependency Count**: The constructor has more than **5-7 dependencies**.
+2. **Multiple Business Concerns**: The service handles distinct, unrelated business processes (e.g., User Registration, User Login, and Token Management are three separate concerns).
+3. **Difficult to Test**: Unit tests require a large and complex setup of mock objects, many of which are irrelevant to the specific method being tested.
+4. **Low Cohesion**: Methods within the class operate on different subsets of the private fields (dependencies).
+
+#### The Solution: Specialize and Delegate
+
+Break down the large service into smaller, more focused services. The original service might become a simpler "facade" that delegates calls, or it might be eliminated entirely in favor of the new, smaller services being injected directly into controllers.
+
+```csharp
+// ✅ CORRECT - Each service has a single, clear responsibility
+
+// 1. Create a specialized service for registration
+public class RegistrationService : IRegistrationService
+{
+    // Only 5 dependencies are needed for registration
+    public RegistrationService(
+        IUserRepository userRepository,
+        IEmailVerificationRepository emailVerificationRepository,
+        IPasswordService passwordService,
+        IKafkaProducerService kafkaProducer,
+        IUnitOfWork unitOfWork)
+    { /* ... */ }
+
+    public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
+    {
+        // All registration logic lives here
+    }
+}
+
+// 2. Create a specialized service for login
+public class LoginService : ILoginService
+{
+    public LoginService(
+        IUserRepository userRepository,
+        IPasswordService passwordService,
+        ITokenService tokenService,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork)
+    { /* ... */ }
+
+    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    {
+        // All login logic lives here
+    }
+}
+
+// 3. Create a specialized service for token management
+public class TokenService : ITokenService
+{
+    public TokenService(
+        IRefreshTokenRepository refreshTokenRepository,
+        IConfiguration configuration)
+    { /* ... */ }
+
+    public async Task<AuthResponse> RefreshTokenAsync(string refreshToken)
+    {
+        // All token refresh logic lives here
+    }
+}
+
+// 4. The AuthController now injects specialized services
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
+{
+    private readonly IRegistrationService _registrationService;
+    private readonly ILoginService _loginService;
+    private readonly ITokenService _tokenService;
+    private readonly IAuthService _authService; // For verify email, if still needed
+
+    public AuthController(
+        IRegistrationService registrationService,
+        ILoginService loginService,
+        ITokenService tokenService,
+        IAuthService authService)
+    {
+        _registrationService = registrationService;
+        _loginService = loginService;
+        _tokenService = tokenService;
+        _authService = authService;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    {
+        var result = await _registrationService.RegisterAsync(request);
+        if (!result.Success)
+        {
+            return this.BadRequestResponse(result.ErrorMessage!, result.ErrorCode);
+        }
+        return this.OkResponse(new { userId = result.UserId }, "User registered successfully");
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    {
+        var result = await _loginService.LoginAsync(request);
+        return this.OkResponse(result, "Login successful");
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        var result = await _tokenService.RefreshTokenAsync(request.RefreshToken);
+        return this.OkResponse(result, "Token refreshed successfully");
+    }
+}
+```
+
+**Key Takeaway:** Create smaller, focused services even if they are not reused elsewhere. The benefits in clarity, maintainability, and testability far outweigh the cost of creating a few extra files.
 
 ### Result Pattern
 
@@ -672,6 +838,7 @@ builder.Services.AddScoped<IKafkaProducerService, KafkaProducerService>();
 - **ALWAYS** use constructor injection
 - **ALWAYS** use interfaces, not concrete types
 - Keep constructor simple (max 5-6 dependencies)
+- If a service has more than 7 dependencies, consider refactoring (see "Service Granularity and Refactoring")
 
 ## 📋 Code Formatting
 
@@ -779,7 +946,7 @@ public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
 ## 🚫 Anti-Patterns to Avoid
 
 1. **Fat Controllers** - Controllers should be thin
-2. **God Objects** - Classes doing too much
+2. **God Objects / Fat Services** - Classes doing too much. A service with > 7 dependencies is a prime candidate for refactoring. _See "Service Granularity and Refactoring" in the Service Layer Guidelines._
 3. **Anemic Domain Models** - Models with only getters/setters
 4. **Circular Dependencies** - Avoid at all costs
 5. **Synchronous I/O** - Always use async
@@ -803,6 +970,7 @@ public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
 - [ ] Proper dependency injection
 - [ ] Transaction handling for multi-step operations
 - [ ] Events published after transactions
+- [ ] Service dependencies count reasonable (< 7) - if not, consider refactoring
 
 ---
 

@@ -52,6 +52,9 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IKafkaProducerService, KafkaProducerService>();
+builder.Services.AddScoped<IRegistrationService, RegistrationService>();
+builder.Services.AddScoped<ILoginService, LoginService>();
+builder.Services.AddScoped<ITokenManagementService, TokenManagementService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Configure JWT Authentication

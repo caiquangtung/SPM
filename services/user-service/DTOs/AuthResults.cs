@@ -1,14 +1,4 @@
-using user_service.DTOs;
-
-namespace user_service.Services;
-
-public interface IAuthService
-{
-    Task<RegisterResult> RegisterAsync(RegisterRequest request);
-    Task<VerifyEmailResult> VerifyEmailAsync(string token);
-    Task<AuthResponse> LoginAsync(LoginRequest request);
-    Task<AuthResponse> RefreshTokenAsync(string refreshToken);
-}
+namespace user_service.DTOs;
 
 public class RegisterResult
 {
@@ -60,4 +50,5 @@ public class VerifyEmailResult
         };
     }
 }
+
 
