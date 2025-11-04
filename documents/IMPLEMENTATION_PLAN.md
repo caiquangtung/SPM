@@ -294,24 +294,25 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
   - `POST /api/auth/login`
   - `POST /api/auth/refresh`
 - [x] Implement role-based authorization (Admin/PM/Member)
+  - Roles implemented with `UserRole` enum in domain, persisted as string with EF Core conversion; JWT/DTO expose string values; DB CHECK constraint enforces allowed roles.
 - [x] Publish `user.created`, `user.updated` Kafka events
-- [ ] Write unit tests
+- [x] Write unit tests
 
-#### **Frontend Tasks** ✅
+#### **Frontend Tasks**
 
 **Pages:**
 
-- [x] `/register` - Registration form với validation
-- [x] `/login` - Login form
-- [x] `/verify-email/[token]` - Email verification
-- [x] `/profile` - User profile editor
+- [ ] `/register` - Registration form với validation
+- [ ] `/login` - Login form
+- [ ] `/verify-email/[token]` - Email verification
+- [ ] `/profile` - User profile editor
 
 **Components:**
 
-- [x] `AuthProvider` - Global auth state
-- [x] `ProtectedRoute` - Route guard
-- [x] Form validation với react-hook-form
-- [x] Error handling & toast notifications
+- [ ] `AuthProvider` - Global auth state
+- [ ] `ProtectedRoute` - Route guard
+- [ ] Form validation với react-hook-form
+- [ ] Error handling & toast notifications
 
 ---
 
