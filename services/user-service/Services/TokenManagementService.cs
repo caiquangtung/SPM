@@ -42,7 +42,7 @@ public class TokenManagementService : ITokenManagementService
                 EmailConfirmed = user.EmailConfirmed,
                 FullName = user.FullName,
                 AvatarUrl = user.AvatarUrl,
-                Role = user.Role
+                Role = user.Role.ToString()
             }
         };
     }

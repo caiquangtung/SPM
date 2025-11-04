@@ -531,3 +531,29 @@ When adding new features:
 ---
 
 **Last Updated:** 2025-10-28
+
+## 🏷️ Roles (Enum)
+
+- Domain model uses an enum `UserRole` (`Admin`, `PM`, `Member`) for type-safety.
+- Persistence and API expose role as string for readability and compatibility.
+- EF Core mapping converts enum <-> string:
+
+```csharp
+modelBuilder.Entity<User>(entity =>
+{
+    entity.Property(u => u.Role)
+        .HasConversion<string>()
+        .HasMaxLength(20)
+        .IsRequired();
+    entity.ToTable(t => t.HasCheckConstraint(
+        "CK_User_Role",
+        "role IN ('Admin', 'PM', 'Member')"));
+});
+```
+
+- JWT claim uses `ClaimTypes.Role` with `user.Role.ToString()`.
+- DTOs (`UserDto`) serialize `Role` as string.
+
+### Migration Note
+
+- If your `users.role` column is already `TEXT/VARCHAR`, adding enum + string conversion does not require a column type change (no migration needed beyond the model snapshot). If switching from an integer-backed enum, create a migration to change the column to `TEXT`.

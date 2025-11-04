@@ -41,6 +41,7 @@ public class UserDbContext : DbContext
                 .HasMaxLength(255);
 
             entity.Property(u => u.Role)
+                .HasConversion<string>()
                 .HasMaxLength(20)
                 .IsRequired();
 

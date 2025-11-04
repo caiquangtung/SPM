@@ -738,6 +738,27 @@ public class RegisterRequest
 }
 ```
 
+## 🏷️ Enums vs Strings for Domain Values
+
+- Use enums in Models for fixed, bounded sets (e.g., `UserRole` with `Admin`, `PM`, `Member`) for type-safety and refactorability.
+- Persist enums as strings in the database using EF Core `.HasConversion<string>()` to keep data readable and resilient to enum reordering.
+- Add CHECK constraints to enforce allowed values at the DB level (e.g., `role IN ('Admin','PM','Member')`).
+- Expose enums as strings at API boundaries (DTOs) and in JWT claims.
+- Example mapping:
+
+```csharp
+modelBuilder.Entity<User>(entity =>
+{
+    entity.Property(u => u.Role)
+        .HasConversion<string>()
+        .HasMaxLength(20)
+        .IsRequired();
+    entity.ToTable(t => t.HasCheckConstraint("CK_User_Role", "role IN ('Admin', 'PM', 'Member')"));
+});
+```
+
+> Rationale: enums provide compile-time safety and clarity; string persistence keeps DB and clients simple.
+
 ## ⚡ Async/Await Patterns
 
 ### Always Use Async for I/O Operations
@@ -993,6 +1014,7 @@ public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
 - [ ] Transaction handling for multi-step operations
 - [ ] Events published after transactions
 - [ ] Service dependencies count reasonable (< 7) - if not, consider refactoring
+- [ ] Enum domains persisted as strings; DTO/JWT expose strings; DB constraint enforced
 
 ---
 

@@ -159,6 +159,18 @@ dotnet ef migrations script --context UserDbContext
 dotnet ef migrations script --from Migration1 --to Migration2 --context UserDbContext
 ```
 
+#### Ghi chú: Enum Role → string mapping
+
+- Nếu cột `spm_user.users.role` đã là `TEXT/VARCHAR`, thêm enum + `.HasConversion<string>()` không cần đổi kiểu cột.
+- Nếu trước đây lưu số (int), tạo migration đổi cột về `TEXT` rồi update CHECK constraint.
+
+```sql
+ALTER TABLE spm_user.users ALTER COLUMN role TYPE TEXT;
+ALTER TABLE spm_user.users DROP CONSTRAINT IF EXISTS "CK_User_Role";
+ALTER TABLE spm_user.users ADD CONSTRAINT "CK_User_Role"
+  CHECK (role IN ('Admin','PM','Member'));
+```
+
 ### **Testing**
 
 ```bash

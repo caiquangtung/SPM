@@ -53,7 +53,7 @@ public class RegistrationService : IRegistrationService
                 Email = request.Email.ToLowerInvariant(),
                 PasswordHash = _passwordService.HashPassword(request.Password),
                 FullName = request.FullName,
-                Role = "Member",
+                Role = UserRole.Member,
                 EmailConfirmed = false,
                 IsActive = true
             };
@@ -73,7 +73,7 @@ public class RegistrationService : IRegistrationService
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
 
-            await _kafkaProducer.PublishUserCreatedAsync(user.Id, user.Email, user.Role);
+            await _kafkaProducer.PublishUserCreatedAsync(user.Id, user.Email, user.Role.ToString());
 
             _logger.LogInformation("User registered: {Email}", user.Email);
 

@@ -8,7 +8,7 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string? FullName { get; set; }
     public string? AvatarUrl { get; set; }
-    public string Role { get; set; } = "Member"; // Admin, PM, Member
+    public UserRole Role { get; set; } = UserRole.Member; // Admin, PM, Member
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

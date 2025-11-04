@@ -69,7 +69,7 @@ public class AuthService : IAuthService
             await _unitOfWork.CommitTransactionAsync();
 
             // Publish Kafka event (after transaction)
-            await _kafkaProducer.PublishUserUpdatedAsync(verification.User.Id, verification.User.Email, verification.User.Role);
+            await _kafkaProducer.PublishUserUpdatedAsync(verification.User.Id, verification.User.Email, verification.User.Role.ToString());
 
             return VerifyEmailResult.SuccessResult();
         }
