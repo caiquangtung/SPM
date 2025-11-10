@@ -1,0 +1,9 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass"
+  },
+  "Kafka": {
+    "BootstrapServers": "localhost:29092"
+  }
+}
+

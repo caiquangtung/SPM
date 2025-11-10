@@ -87,3 +87,4 @@ tmp/
 temp/
 *.tmp
 
+services/user-service/appsettings.Development.json

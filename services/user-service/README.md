@@ -13,6 +13,7 @@ User Management Service for SPM System - .NET 8
 - [Database Migrations](#database-migrations)
 - [Configuration](#configuration)
 - [Running Locally](#running-locally)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -348,6 +349,34 @@ Response:
 
 ---
 
+## 📮 Postman Collection
+
+Để test các API endpoints, bạn có thể sử dụng Postman collection đã được chuẩn bị sẵn.
+
+### Files
+
+- `SPM-User-Service.postman_collection.json` - Collection chứa tất cả các API endpoints
+- `SPM-User-Service.postman_environment.json` - Environment variables cho local development
+- `POSTMAN_GUIDE.md` - Hướng dẫn chi tiết cách sử dụng
+
+### Quick Start
+
+1. Import collection và environment vào Postman
+2. Chọn environment **"SPM User Service - Local"**
+3. Đảm bảo User Service đang chạy tại `http://localhost:5001`
+4. Bắt đầu test các endpoints
+
+### Features
+
+- ✅ Tự động lưu tokens vào environment variables
+- ✅ Automated tests cho mỗi request
+- ✅ Pre-configured request bodies
+- ✅ Environment variables cho base URL và tokens
+
+Xem chi tiết tại [POSTMAN_GUIDE.md](./POSTMAN_GUIDE.md)
+
+---
+
 ## 🗄️ Database Migrations
 
 ### Create Migration
@@ -380,12 +409,14 @@ dotnet ef migrations add InitialCreate --context UserDbContext
 
 ## ⚙️ Configuration
 
-Update `appsettings.json`:
+### appsettings.json
+
+File `appsettings.json` chứa cấu hình mặc định cho tất cả environments:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=postgres;Port=5432;Database=spm_db;..."
+    "DefaultConnection": "Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass"
   },
   "JWT": {
     "SecretKey": "your-secret-key-min-32-chars",
@@ -396,15 +427,56 @@ Update `appsettings.json`:
   },
   "Kafka": {
     "BootstrapServers": "kafka:9092"
+  },
+  "CORS": {
+    "AllowedOrigins": ["http://localhost:3000", "https://localhost:3000"]
   }
 }
 ```
 
+### appsettings.Development.json
+
+File `appsettings.Development.json` được sử dụng khi `ASPNETCORE_ENVIRONMENT=Development`.
+
+**⚠️ Lưu ý**: File này đã được ignore trong `.gitignore` để:
+
+- Tránh commit sensitive data (mặc dù là dev password)
+- Cho phép mỗi developer có config riêng
+- Tránh conflict khi merge
+
+**Setup cho developer mới**:
+
+1. Copy file example:
+
+   ```bash
+   cp appsettings.Development.json.example appsettings.Development.json
+   ```
+
+2. Hoặc tạo file mới với nội dung:
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "DefaultConnection": "Host=localhost;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass"
+     },
+     "Kafka": {
+       "BootstrapServers": "localhost:29092"
+     }
+   }
+   ```
+
+3. Điều chỉnh connection string nếu cần (ví dụ: port khác, database name khác)
+
 ### Environment Variables
 
-- `JWT_SECRET_KEY` - Override JWT secret key
+Các environment variables có thể override settings trong appsettings:
+
+- `ASPNETCORE_ENVIRONMENT` - Development/Production/Staging
+- `ConnectionStrings__DefaultConnection` - Database connection string
+- `JWT__SecretKey` - JWT secret key (override từ appsettings)
+- `JWT_SECRET_KEY` - JWT secret key (alternative format)
+- `Kafka__BootstrapServers` - Kafka bootstrap servers
 - `GEMINI_API_KEY` - Gemini API key (if needed)
-- `ASPNETCORE_ENVIRONMENT` - Development/Production
 
 ---
 
@@ -530,7 +602,36 @@ When adding new features:
 
 ---
 
-**Last Updated:** 2025-10-28
+## 🔧 Troubleshooting
+
+Nếu gặp lỗi khi setup hoặc chạy service, xem [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) để biết cách fix các lỗi thường gặp:
+
+### Các lỗi thường gặp:
+
+1. **Lỗi DNS "Name or service not known"**
+
+   - Nguyên nhân: Services không ở cùng Docker network
+   - Giải pháp: Thêm `networks: - spm-network` vào docker-compose.yml
+
+2. **Thiếu tables trong schema spm_user**
+
+   - Nguyên nhân: Chưa tạo và apply migrations
+   - Giải pháp: Tạo migration và apply vào database
+
+3. **Các lỗi khác**
+   - JWT SecretKey không được config
+   - Connection string null
+   - CORS errors
+   - Email already exists
+
+**Documentation**:
+
+- [QUICK_FIX.md](./docs/QUICK_FIX.md) - Hướng dẫn fix nhanh
+- [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) - Hướng dẫn chi tiết
+
+---
+
+**Last Updated:** 2025-11-10
 
 ## 🏷️ Roles (Enum)
 

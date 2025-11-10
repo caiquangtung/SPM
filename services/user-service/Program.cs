@@ -102,28 +102,31 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Ensure database is created and migrated (for development)
-// In production, run migrations separately
+// Apply pending migrations automatically (for development)
+// In production, run migrations separately using: dotnet ef database update
 if (app.Environment.IsDevelopment())
 {
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         try
         {
-            db.Database.EnsureCreated();
-            // Uncomment to run migrations automatically:
-            // db.Database.Migrate();
+            logger.LogInformation("Applying pending database migrations...");
+            db.Database.Migrate();
+            logger.LogInformation("Database migrations applied successfully.");
         }
         catch (Exception ex)
         {
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while creating/migrating the database.");
+            logger.LogError(ex, "An error occurred while applying database migrations.");
+            // Don't throw - allow service to start even if migrations fail
+            // This allows for manual migration fixes
         }
     }
 }
