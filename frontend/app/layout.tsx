@@ -1,30 +1,25 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AuthProvider } from '@/contexts/AuthContext'
-import { Toaster } from 'react-hot-toast'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Providers } from "./providers";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'SPM - Smart Project Management',
-  description: 'Hệ thống Web Quản lý Dự án và Theo dõi Tiến độ Thông minh',
-}
+  title: "SPM - Smart Project Management",
+  description: "Hệ thống Web Quản lý Dự án và Theo dõi Tiến độ Thông Minh",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster position="top-right" />
-        </AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }
-

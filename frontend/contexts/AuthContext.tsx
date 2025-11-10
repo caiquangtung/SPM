@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, authService } from "@/lib/auth";
-import { useRouter, usePathname } from "next/navigation";
+import { authService } from "@/lib/auth";
+import type { User } from "@/types/auth";
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null;
@@ -23,18 +24,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    // Check if user is authenticated
-    const token = authService.getAccessToken();
-    if (token) {
-      // TODO: Validate token and fetch user info
-      // For now, we'll just check if token exists
-      setLoading(false);
-    } else {
-      setLoading(false);
-    }
+    const hydrate = async () => {
+      try {
+        const token = authService.getAccessToken();
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+        const refreshed = await authService.refreshToken();
+        setUser(refreshed.user);
+      } catch {
+        // If refresh fails, clear session silently
+        authService.logout();
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    hydrate();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -64,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const isAuthenticated = !!user || !!authService.getAccessToken();
+  const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider

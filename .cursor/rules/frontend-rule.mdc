@@ -1,0 +1,143 @@
+---
+alwaysApply: true
+---
+
+# SPM Frontend Code & Architecture Guide
+
+## 🎯 Goals
+
+- High developer velocity, clear conventions, easy refactors.
+- Strong separation of concerns: UI, data fetching, state, validation.
+- Prefer composition over complexity; adopt minimal tools that cover 80% cases well.
+
+## 🧱 Tech Stack (Baseline)
+
+- Next.js 14 (App Router) + TypeScript
+- Tailwind CSS + shadcn/ui (Radix primitives)
+- Data fetching/cache: TanStack Query (React Query)
+- HTTP client: Axios (+ interceptors)
+- Forms: react-hook-form + zod (@hookform/resolvers)
+- Toast/feedback: sonner (hoặc react-hot-toast)
+- Icons: lucide-react
+- Date/time: dayjs
+- Lint/format: ESLint (next/core-web-vitals) + Prettier + Husky + lint-staged
+- Tests: Vitest + Testing Library (Unit), Playwright (E2E - later)
+
+## 📦 Project Structure
+
+```
+frontend/
+  app/                        # App Router pages & layouts
+    (auth)/                  # Route groups if needed
+    login/page.tsx
+    register/page.tsx
+    verify-email/[token]/page.tsx
+    profile/page.tsx
+    dashboard/page.tsx
+    layout.tsx
+    globals.css
+  components/                # Reusable UI components
+    ui/                      # shadcn/ui generated components
+    forms/                   # Form inputs, reusable form comps
+  contexts/
+    AuthContext.tsx          # Authentication/session context
+  hooks/
+    useAuth.ts               # Helpers to consume AuthContext
+  lib/
+    axios.ts                 # Axios instance + interceptors
+    queryClient.ts           # React Query client
+    validators/              # zod schemas
+  styles/                    # Tailwind config, extra css
+  types/                     # API/DTO types (frontend-side)
+```
+
+## 🔌 API & Data Fetching
+
+- Use Axios instance in `lib/axios.ts` with:
+  - BaseURL from `NEXT_PUBLIC_API_URL`.
+  - Request interceptor attaches `Authorization: Bearer <accessToken>` if present.
+  - Response interceptor: on 401, call `/api/auth/refresh`, update token, retry once.
+- Use React Query for all server state (lists, detail, pagination, refetch):
+  - Queries: idempotent reads (cache keys stable, derive from params).
+  - Mutations: POST/PUT/DELETE; use invalidation or optimistic updates when needed.
+  - Disable global Axios response handling for non-auth errors; show toasts per screen.
+
+## 🔐 Auth Strategy
+
+- Access token: kept in memory (via `AuthContext`) and injected by Axios.
+- Refresh token: httpOnly cookie (handled by backend). Interceptor does refresh-then-retry.
+- `AuthContext` responsibilities:
+  - Holds `user` object (id, email, role), `isAuthenticated`, loading states.
+  - Expose `login`, `logout`, `register`, `refresh`, `loadSession` helpers.
+  - Hydrate session on app mount using a lightweight `me` or profile endpoint (if available), otherwise infer from refresh success.
+- `ProtectedRoute` (or server-side redirect) for private pages.
+- JWT claims: role is string ("Admin"|"PM"|"Member").
+
+## 🧾 Forms & Validation
+
+- Prefer `react-hook-form` + `zod`.
+- All forms must have:
+  - Zod schema for inputs and messages.
+  - Disable submit while submitting; show success/error toasts.
+  - Accessibility: labels, aria-invalid, proper inputs.
+- Example patterns:
+  - Email: `.email()`; Password: min length 6; Optional `fullName`.
+
+## 🎨 UI/UX
+
+- Tailwind utility-first + shadcn/ui for accessible components.
+- Keep Sprint 1 UI minimal; focus on correctness and flows (register → verify → login → refresh → profile → logout).
+- Use `sonner` for toasts; consistent success/error styling.
+
+## 🧠 State Management Rules
+
+- Default: React Query for server state + Context for auth/session only.
+- Local UI state: `useState`/`useReducer` in component.
+- Redux usage guideline:
+  - Only introduce Redux when there is complex, shared client-state with concurrent writers, or coordination across many modules (e.g., Kanban DnD with optimistic updates across columns, merged real-time + local edits).
+  - Otherwise avoid adding Redux; consider lightweight Zustand/Jotai if truly needed.
+
+## 🧪 Testing
+
+- Unit: Vitest + Testing Library for components, hooks, and utilities.
+- Integration (later): Playwright E2E for main flows.
+- Minimum for Sprint 1: smoke tests for auth forms and navigation (optional if time-limited, but recommended).
+
+## 🧰 Developer Experience
+
+- ESLint + Prettier; CI should run lint & type-check.
+- Husky + lint-staged to enforce on commit.
+- Strict TypeScript, avoid `any`.
+- Absolute imports (configure tsconfig `paths` if needed).
+
+## ⚙️ Environment & Config
+
+- `.env`: `NEXT_PUBLIC_API_URL`.
+- Never expose secrets (only NEXT_PUBLIC vars are client-visible).
+- All time values treated as UTC (server gives ISO strings).
+
+## 🛡️ Security
+
+- Never store refresh token in JS; httpOnly cookie only.
+- Sanitize/validate all inputs on client (for UX) and server (for security).
+- Avoid logging PII; only log necessary metadata in client console.
+
+## 📏 Performance
+
+- Prefer server components where possible (Next 14) for static data.
+- Split code where heavy; lazy-load non-critical components.
+- Cache with React Query responsibly; set `staleTime` for less chatty data.
+
+## ✅ Definition of Done (Sprint 1)
+
+- End-to-end flows work with user-service:
+  - Register → Verify Email → Login → Auto Refresh → Profile → Logout.
+- `ProtectedRoute` blocks unauthorized access reliably.
+- Axios interceptors attach token, refresh-on-401 works and retries once.
+- DTO compatibility: `AuthResponse.user.role` is string.
+- No console errors; lint passes; basic responsive layout.
+
+## 🔄 Versioning & Changes
+
+- Any new shared utility/components must be documented briefly in README.
+- Breaking changes to API contracts must update frontend types and migration notes.

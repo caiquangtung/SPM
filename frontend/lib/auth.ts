@@ -1,21 +1,7 @@
 import Cookies from "js-cookie";
-import apiClient from "./api";
+import apiClient from "./axios";
+import type { User, AuthResponse } from "@/types/auth";
 
-export interface User {
-  id: string;
-  email: string;
-  emailConfirmed: boolean;
-  fullName?: string;
-  avatarUrl?: string;
-  role: string;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-  user: User;
-}
 
 export const authService = {
   async register(email: string, password: string, fullName?: string) {
