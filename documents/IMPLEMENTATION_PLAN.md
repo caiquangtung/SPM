@@ -302,17 +302,17 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
 
 **Pages:**
 
-- [ ] `/register` - Registration form với validation
-- [ ] `/login` - Login form
-- [ ] `/verify-email/[token]` - Email verification
-- [ ] `/profile` - User profile editor
+- [x] `/register` - Registration form với validation
+- [x] `/login` - Login form
+- [x] `/verify-email/[token]` - Email verification
+- [x] `/profile` - User profile editor
 
 **Components:**
 
-- [ ] `AuthProvider` - Global auth state
-- [ ] `ProtectedRoute` - Route guard
-- [ ] Form validation với react-hook-form
-- [ ] Error handling & toast notifications
+- [x] `AuthProvider` - Global auth state
+- [x] `ProtectedRoute` - Route guard
+- [x] Form validation với react-hook-form
+- [x] Error handling & toast notifications
 
 ---
 
@@ -652,6 +652,10 @@ README.md
 - Added form validation using `react-hook-form`
 - Integrated toast notifications with `react-hot-toast`
 - Configured cookie-based token storage
+
+**QA**
+
+- Smoke tests completed; Sprint 1 DoD met (register → verify → login → refresh-on-401 → profile → logout).
 
 **Key Files Created:**
 

@@ -155,8 +155,8 @@ npm run dev
   - [x] `/dashboard`: placeholder after login
   - Deliverables: E2E happy-path flows working against user-service
 
-- [ ] 6. QA & Hardening (0.5d)
-  - [ ] Smoke test flows: register → verify → login → refresh-on-401 → profile → logout
+- [x] 6. QA & Hardening (0.5d)
+  - [x] Smoke test flows: register → verify → login → refresh-on-401 → profile → logout
   - [x] Handle loading and error states consistently
   - [x] Lint/type-check clean; responsive basics OK
   - Deliverables: checklist signed off; demo run
@@ -191,4 +191,25 @@ npm run dev
 - [x] M2: Auth context + Protected routes wired
 - [x] M3: Auth pages implemented with validation
 - [x] M4: Verify email flow implemented
-- [ ] M5: QA completed; Sprint 1 DoD met
+- [x] M5: QA completed; Sprint 1 DoD met
+
+## QA & Smoke Test Results (Sprint 1)
+
+- Environment
+
+  - NEXT_PUBLIC_API_URL: configured
+  - Backend: user-service running with CORS allowing frontend origin
+  - Test account: random email per run
+
+- Smoke test steps (Passed)
+
+  - Register: submit valid form → success toast → redirected to /login (Passed)
+  - Verify email: open /verify-email/[token] → success toast → redirected to /login (Passed)
+  - Login: submit valid credentials → access token stored → redirected to /dashboard (Passed)
+  - Protected routes: /profile and /dashboard accessible when authenticated; redirect to /login when not (Passed)
+  - Refresh-on-401: force access token expiry/simulate 401 → interceptor calls /api/auth/refresh → original request retried successfully (Passed)
+  - Logout: clears session and redirects to /login (Passed)
+
+- Notes
+  - All times treated as UTC; no console errors observed.
+  - Lint/type-check clean; responsive basics verified.
