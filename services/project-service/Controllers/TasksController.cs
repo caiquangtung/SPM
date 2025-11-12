@@ -40,4 +40,11 @@ public class TasksController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
+
+    [HttpPost("search")]
+    public async Task<IActionResult> SearchSimilar([FromBody] SearchTasksRequest request, CancellationToken cancellationToken)
+    {
+        var results = await _tasks.SearchSimilarAsync(request, cancellationToken);
+        return Ok(results);
+    }
 }

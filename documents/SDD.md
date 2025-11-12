@@ -103,18 +103,74 @@ NotificationSvc -. WebSocket Push .-> Browser
 ### **3.2. Project Service (.NET)**
 
 - **Trách nhiệm:**
-  - CRUD (Create, Read, Update, Delete) cho Projects, Tasks, Comments.
-  - Xử lý logic nghiệp vụ phức tạp (ví dụ: gán task, thay đổi trạng thái).
-  - Tạo embeddings cho tasks và comments (sử dụng Gemini Embedding API).
-  - Sản xuất (produce) các sự kiện nghiệp vụ ra Kafka.
-- **Công nghệ:** .NET 8, ASP.NET Core, EF Core, Npgsql (với pgvector), Confluent.Kafka client.
-- **API Endpoints (Ví dụ):**
-  - GET /api/projects
-  - POST /api/projects/{projectId}/tasks
-  - GET /api/tasks/{taskId}
-  - PUT /api/tasks/{taskId}/status
-- **Mô hình Dữ liệu (PostgreSQL):** Projects, Tasks, Comments, TaskEmbeddings, CommentEmbeddings.
-- **Sự kiện Kafka Sản xuất:** project.task.created, project.task.updated, project.comment.added.
+
+  - **Project Management**: CRUD operations cho Projects, quản lý project members và roles.
+  - **Task Management**: CRUD operations cho Tasks, quản lý task status (ToDo, InProgress, Done, Blocked), priority (Low, Medium, High, Critical), assignment và due dates.
+  - **Comment Management**: Thêm và lấy comments của tasks, hỗ trợ real-time collaboration.
+  - **AI-Powered Features**:
+    - Auto-generate embeddings cho tasks (title + description) và comments (content) khi được tạo/cập nhật
+    - Vector similarity search: Tìm kiếm tasks tương tự dựa trên semantic similarity sử dụng cosine distance
+    - Integration với Gemini Embedding API (`embedding-001` model, 768 dimensions)
+  - **Event-Driven**: Sản xuất (produce) các sự kiện nghiệp vụ ra Kafka cho notification service và các services khác.
+
+- **Công nghệ:**
+
+  - .NET 8, ASP.NET Core
+  - Entity Framework Core 8.0
+  - PostgreSQL 16+ với pgvector extension
+  - Pgvector.EntityFrameworkCore (v0.2.0) cho vector type support
+  - Confluent.Kafka client
+  - FluentValidation cho input validation
+  - JWT Bearer Authentication
+
+- **API Endpoints:**
+
+  - **Projects:**
+    - `GET /api/projects` - Lấy danh sách projects của user hiện tại
+    - `GET /api/projects/{id}` - Lấy thông tin chi tiết project
+    - `POST /api/projects` - Tạo project mới
+  - **Tasks:**
+    - `GET /api/tasks?projectId={id}` - Lấy danh sách tasks của project
+    - `POST /api/tasks` - Tạo task mới (auto-generate embedding)
+    - `PUT /api/tasks/{id}/status` - Cập nhật status của task
+    - `POST /api/tasks/search` - Vector similarity search (semantic search)
+  - **Comments:**
+    - `GET /api/tasks/{taskId}/comments` - Lấy danh sách comments của task
+    - `POST /api/tasks/{taskId}/comments` - Thêm comment vào task (auto-generate embedding)
+
+- **Mô hình Dữ liệu (PostgreSQL - Schema: `spm_project`):**
+
+  - `projects` - Quản lý projects
+  - `project_members` - Quan hệ many-to-many giữa users và projects
+  - `tasks` - Quản lý tasks với status, priority, assignment
+  - `comments` - Quản lý comments
+  - `task_embeddings` - Vector embeddings cho tasks (vector(768))
+  - `comment_embeddings` - Vector embeddings cho comments (vector(768))
+
+- **Sự kiện Kafka Sản xuất:**
+
+  - `project.created` - Khi tạo project mới
+  - `project.task.created` - Khi tạo task mới
+  - `project.task.updated` - Khi cập nhật task
+  - `project.task.status.changed` - Khi thay đổi task status
+  - `project.comment.created` - Khi thêm comment mới
+
+- **Architecture Patterns:**
+
+  - Clean Architecture: Controllers → Services → Repositories → Database
+  - Repository Pattern cho data access
+  - Service Layer cho business logic và orchestration
+  - DTO Pattern cho API contracts
+  - Event-Driven Architecture với Kafka
+
+- **Chi tiết kỹ thuật:**
+
+  - Embedding generation: Async, fire-and-forget pattern để không block API response
+  - Vector search: Sử dụng cosine distance (`<=>`) operator trong PostgreSQL
+  - Configuration: Support appsettings.json và environment variables (`GEMINI_API_KEY`)
+  - Authentication: JWT Bearer Token, tự động extract userId từ claims
+
+- **Documentation:** Xem chi tiết tại [services/project-service/README.md](../../services/project-service/README.md)
 
 ### **3.3. File Service (.NET)**
 

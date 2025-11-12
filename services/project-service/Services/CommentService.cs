@@ -10,16 +10,26 @@ namespace project_service.Services;
 public class CommentService : ICommentService
 {
     private readonly ICommentRepository _comments;
+    private readonly ICommentEmbeddingRepository _commentEmbeddings;
     private readonly ITaskRepository _tasks;
     private readonly ProjectDbContext _db;
     private readonly IKafkaProducerService _kafkaProducer;
+    private readonly IEmbeddingService _embeddingService;
 
-    public CommentService(ICommentRepository comments, ITaskRepository tasks, ProjectDbContext db, IKafkaProducerService kafkaProducer)
+    public CommentService(
+        ICommentRepository comments,
+        ICommentEmbeddingRepository commentEmbeddings,
+        ITaskRepository tasks,
+        ProjectDbContext db,
+        IKafkaProducerService kafkaProducer,
+        IEmbeddingService embeddingService)
     {
         _comments = comments;
+        _commentEmbeddings = commentEmbeddings;
         _tasks = tasks;
         _db = db;
         _kafkaProducer = kafkaProducer;
+        _embeddingService = embeddingService;
     }
 
     public async Task<IEnumerable<CommentResponse>> GetByTaskAsync(Guid taskId, CancellationToken cancellationToken = default)
@@ -45,6 +55,10 @@ public class CommentService : ICommentService
             };
             _comments.CreateAsync(entity);
             await _db.SaveChangesAsync(cancellationToken);
+
+            // Generate and save embedding (async, non-blocking)
+            _ = GenerateAndSaveEmbeddingAsync(entity, taskId, cancellationToken);
+
             await transaction.CommitAsync(cancellationToken);
 
             // Publish event after transaction commit (fire-and-forget for performance)
@@ -56,6 +70,32 @@ public class CommentService : ICommentService
         {
             await transaction.RollbackAsync(cancellationToken);
             throw;
+        }
+    }
+
+    private async Task GenerateAndSaveEmbeddingAsync(ProjectComment comment, Guid taskId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(comment.Content))
+                return;
+
+            var embedding = await _embeddingService.GenerateEmbeddingAsync(comment.Content, cancellationToken);
+
+            var commentEmbedding = new CommentEmbedding
+            {
+                CommentId = comment.Id,
+                TaskId = taskId,
+                Embedding = embedding
+            };
+
+            _commentEmbeddings.CreateOrUpdateAsync(commentEmbedding);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Log error but don't fail the comment creation
+            // Embedding can be regenerated later if needed
         }
     }
 }

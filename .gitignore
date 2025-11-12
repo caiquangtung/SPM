@@ -87,4 +87,8 @@ tmp/
 temp/
 *.tmp
 
-services/user-service/appsettings.Development.json
+# AppSettings - Ignore sensitive configuration files
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.example.json
+!**/appsettings.*.example.json
