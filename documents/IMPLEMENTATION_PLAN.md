@@ -322,13 +322,13 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
 
 **Project Service:**
 
-- [ ] Setup EF Core với pgvector support
-- [ ] Create Project, Task, Comment entities
-- [ ] Create TaskEmbedding, CommentEmbedding entities
+- [x] Setup EF Core với pgvector support
+- [x] Create Project, Task, Comment entities
+- [x] Create TaskEmbedding, CommentEmbedding entities
 - [ ] Implement Gemini Embedding API integration
 - [ ] Auto-generate embeddings on create/update
 - [ ] Implement vector similarity search
-- [ ] Create ProjectController, TaskController:
+- [x] Create ProjectController, TaskController:
   - `GET /api/projects` - List user's projects
   - `POST /api/projects` - Create project
   - `GET /api/projects/{id}` - Get project details
