@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using project_service.DTOs.Tasks;
+using project_service.Extensions;
 using project_service.Services.Interfaces;
 
 namespace project_service.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TasksController : ControllerBase
 {
     private readonly ITaskService _tasks;
@@ -25,7 +28,7 @@ public class TasksController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTaskRequest request, CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
+        var userId = this.GetUserId();
         var result = await _tasks.CreateAsync(userId, request, cancellationToken);
         return CreatedAtAction(nameof(GetByProject), new { projectId = result.ProjectId }, result);
     }
@@ -37,12 +40,4 @@ public class TasksController : ControllerBase
         if (result == null) return NotFound();
         return Ok(result);
     }
-
-    private Guid GetUserId()
-    {
-        // Placeholder until JWT wired: use a deterministic fake user for dev
-        return Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-    }
 }
-
-

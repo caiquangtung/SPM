@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using project_service.DTOs.Comments;
+using project_service.Extensions;
 using project_service.Services.Interfaces;
 
 namespace project_service.Controllers;
 
 [ApiController]
 [Route("api/tasks/{taskId:guid}/[controller]")]
+[Authorize]
 public class CommentsController : ControllerBase
 {
     private readonly ICommentService _comments;
@@ -25,15 +28,9 @@ public class CommentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(Guid taskId, [FromBody] CreateCommentRequest request, CancellationToken cancellationToken)
     {
-        var userId = GetUserId();
+        var userId = this.GetUserId();
         var result = await _comments.CreateAsync(taskId, userId, request, cancellationToken);
         return Ok(result);
-    }
-
-    private Guid GetUserId()
-    {
-        // Placeholder until JWT wired: use a deterministic fake user for dev
-        return Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     }
 }
 

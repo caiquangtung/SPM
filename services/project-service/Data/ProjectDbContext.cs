@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using project_service.Models;
 
 namespace project_service.Data;
@@ -20,6 +21,9 @@ public class ProjectDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Enable pgvector extension
+        modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.HasDefaultSchema("spm_project");
 

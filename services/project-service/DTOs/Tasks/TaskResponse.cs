@@ -1,4 +1,5 @@
 using project_service.Models;
+using TaskStatusEnum = project_service.Models.TaskStatus;
 
 namespace project_service.DTOs.Tasks;
 
@@ -10,7 +11,7 @@ public class TaskResponse
     public string? Description { get; set; }
     public Guid? AssignedTo { get; set; }
     public Guid CreatedBy { get; set; }
-    public TaskStatus Status { get; set; }
+    public TaskStatusEnum Status { get; set; }
     public TaskPriority Priority { get; set; }
     public DateTime? DueDate { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -11,11 +11,13 @@ public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _projects;
     private readonly ProjectDbContext _db;
+    private readonly IKafkaProducerService _kafkaProducer;
 
-    public ProjectService(IProjectRepository projects, ProjectDbContext db)
+    public ProjectService(IProjectRepository projects, ProjectDbContext db, IKafkaProducerService kafkaProducer)
     {
         _projects = projects;
         _db = db;
+        _kafkaProducer = kafkaProducer;
     }
 
     public async Task<IEnumerable<ProjectResponse>> GetMyProjectsAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -32,17 +34,30 @@ public class ProjectService : IProjectService
 
     public async Task<ProjectResponse> CreateAsync(Guid userId, CreateProjectRequest request, CancellationToken cancellationToken = default)
     {
-        var entity = new Project
+        using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            Name = request.Name,
-            Description = request.Description,
-            CreatedBy = userId
-        };
+            var entity = new Project
+            {
+                Name = request.Name,
+                Description = request.Description,
+                CreatedBy = userId
+            };
 
-        _projects.CreateAsync(entity);
-        await _db.SaveChangesAsync(cancellationToken);
+            _projects.CreateAsync(entity);
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
-        return ProjectResponse.FromEntity(entity);
+            // Publish event after transaction commit (fire-and-forget for performance)
+            _ = _kafkaProducer.PublishProjectCreatedAsync(entity.Id, userId, entity.Name);
+
+            return ProjectResponse.FromEntity(entity);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }
 

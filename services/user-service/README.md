@@ -13,6 +13,7 @@ User Management Service for SPM System - .NET 8
 - [Database Migrations](#database-migrations)
 - [Configuration](#configuration)
 - [Running Locally](#running-locally)
+- [Architecture Decisions](#architecture-decisions)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -599,6 +600,47 @@ When adding new features:
 3. Register in `Program.cs` DI container
 4. Add unit tests
 5. Update this README
+
+---
+
+## 🏗️ Architecture Decisions
+
+Các quyết định kiến trúc quan trọng và lý do tại sao chúng ta chọn các giải pháp cụ thể:
+
+### Tại sao không sử dụng ASP.NET Core Identity Framework?
+
+**Lý do chính**:
+
+- ✅ **Microservices Architecture**: Identity Framework được thiết kế cho monolithic apps, không phù hợp với microservices
+- ✅ **JWT-based Authentication**: Cần stateless authentication, Identity Framework mặc định dùng cookie-based
+- ✅ **Custom Requirements**: Cần customize flow (email verification, custom roles, Kafka events)
+- ✅ **Lightweight**: Chỉ implement những gì cần, không có overhead
+- ✅ **Full Control**: Dễ dàng customize và maintain
+
+**Khi nào nên xem xét Identity Framework**:
+
+- Cần 2FA hoặc external login (Google, Facebook)
+- Chuyển sang monolithic architecture
+- Team có expertise với Identity Framework
+
+### Tại sao không sử dụng MassTransit cho Kafka?
+
+**Lý do chính**:
+
+- ✅ **Simplicity**: Kafka client trực tiếp đơn giản hơn, không cần abstraction layer
+- ✅ **Single Broker**: Chỉ dùng Kafka, không cần multi-broker support
+- ✅ **Full Control**: Dễ dàng customize và optimize
+- ✅ **Mature Client**: Confluent.Kafka là official client, mature và stable
+- ✅ **Learning Curve**: Chỉ cần học Kafka, không cần học MassTransit
+
+**Khi nào nên xem xét MassTransit**:
+
+- Cần saga pattern hoặc state machines
+- Cần multi-broker support (RabbitMQ, Azure Service Bus)
+- Cần advanced event orchestration
+- Complexity tăng lên đáng kể
+
+**Xem chi tiết**: [ARCHITECTURE_DECISIONS.md](./docs/ARCHITECTURE_DECISIONS.md)
 
 ---
 
