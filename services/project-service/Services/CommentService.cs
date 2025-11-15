@@ -53,7 +53,7 @@ public class CommentService : ICommentService
                 UserId = userId,
                 Content = request.Content
             };
-            _comments.CreateAsync(entity);
+            _ = _comments.CreateAsync(entity);
             await _db.SaveChangesAsync(cancellationToken);
 
             // Generate and save embedding (async, non-blocking)
@@ -89,7 +89,7 @@ public class CommentService : ICommentService
                 Embedding = embedding
             };
 
-            _commentEmbeddings.CreateOrUpdateAsync(commentEmbedding);
+            _ = _commentEmbeddings.CreateOrUpdateAsync(commentEmbedding);
             await _db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception)

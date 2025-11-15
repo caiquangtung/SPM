@@ -127,30 +127,29 @@ services:
   #   profiles:
   #     - project-service
 
-  # file-service: Not implemented yet
-  # Uncomment when service is ready
-  # file-service:
-  #   build: ./services/file-service
-  #   container_name: spm-file-service
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #   ports:
-  #     - "5003:8080"
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_URLS=http://+:8080
-  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
-  #     - Kafka__BootstrapServers=kafka:9092
-  #     - FileStorage__Path=/app/storage
-  #   volumes:
-  #     - file_storage:/app/storage
-  #   networks:
-  #     - spm-network
-  #   profiles:
-  #     - file-service
+  file-service:
+    build: ./services/file-service
+    container_name: spm-file-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "5003:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+      - Kafka__BootstrapServers=kafka:9092
+      - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
+      - JWT__Issuer=spm-api-gateway
+      - JWT__Audience=spm-services
+      - FileStorage__Path=/app/storage
+    volumes:
+      - file_storage:/app/storage
+    networks:
+      - spm-network
 
   # notification-service: Not implemented yet
   # Uncomment when service is ready

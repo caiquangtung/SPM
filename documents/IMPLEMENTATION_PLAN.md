@@ -325,9 +325,9 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
 - [x] Setup EF Core với pgvector support
 - [x] Create Project, Task, Comment entities
 - [x] Create TaskEmbedding, CommentEmbedding entities
-- [ ] Implement Gemini Embedding API integration
-- [ ] Auto-generate embeddings on create/update
-- [ ] Implement vector similarity search
+- [x] Implement Gemini Embedding API integration
+- [x] Auto-generate embeddings on create/update
+- [x] Implement vector similarity search
 - [x] Create ProjectController, TaskController:
   - `GET /api/projects` - List user's projects
   - `POST /api/projects` - Create project
@@ -336,20 +336,26 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
   - `GET /api/tasks` - List tasks (with filters)
   - `PUT /api/tasks/{id}/status` - Update status
   - `POST /api/tasks/{id}/comments` - Add comment
-- [ ] Publish Kafka events
+- [x] Publish Kafka events
 - [ ] Write unit tests
 
 **File Service:**
 
-- [ ] Setup EF Core với PostgreSQL
-- [ ] Create File, TaskAttachment entities
-- [ ] Implement multipart file upload
-- [ ] Store files in Docker volume
-- [ ] Create FileController:
+- [x] Setup EF Core với PostgreSQL
+- [x] Create File, TaskAttachment entities
+- [x] Implement multipart file upload
+- [x] Store files in Docker volume
+- [x] Create FileController:
   - `POST /api/files/upload` - Upload file
   - `GET /api/files/{id}` - Download file
+  - `GET /api/files/{id}/download` - Download file content
   - `DELETE /api/files/{id}` - Delete file
-- [ ] Publish `file.uploaded` events
+  - `GET /api/files/my-files` - List user's files
+- [x] Create TaskAttachmentsController:
+  - `POST /api/tasks/{taskId}/attachments` - Attach file to task
+  - `GET /api/tasks/{taskId}/attachments` - Get task attachments
+  - `DELETE /api/tasks/{taskId}/attachments/{attachmentId}` - Detach file
+- [x] Publish `file.uploaded` events
 - [ ] Write unit tests
 
 #### **Frontend Tasks**
@@ -714,6 +720,91 @@ frontend/
 - Database schema: `spm_user` with proper indexes and constraints
 - CORS: Configured for frontend at `http://localhost:3000`
 - API Base URL: Configurable via `NEXT_PUBLIC_API_URL`
+
+### 🚧 Sprint 2: Project & Task Management (In Progress)
+
+**Backend Progress** ✅
+
+**Project Service:**
+
+- Integrated Gemini Embedding API and automatic embedding generation for tasks & comments
+- Added vector similarity search endpoint (`POST /api/tasks/search`) backed by pgvector
+- Ensured Kafka events are published for project/task/comment lifecycle updates
+- Documented service responsibilities & troubleshooting (`docs/ARCHITECTURE_DECISIONS.md`, `docs/TROUBLESHOOTING.md`, `docs/QUICK_FIX.md`, `docs/RESPONSIBILITIES.md`)
+- Created `appsettings.example.json` templates and updated `.gitignore` to keep secrets out of git
+
+**File Service:**
+
+- Implemented complete file upload, storage, and management system
+- Created File and TaskAttachment entities with EF Core
+- Implemented multipart file upload with validation (max 100 MB)
+- Configured Docker volume storage at `/app/storage`
+- Created FilesController with upload, download, delete, and list endpoints
+- Created TaskAttachmentsController for linking files to tasks
+- Integrated Kafka event publishing for `file.uploaded` events
+- Implemented JWT authentication and ownership validation
+- Added soft delete functionality for files
+- Created comprehensive README documentation
+
+**Outstanding Work**
+
+- Project Service unit tests
+- File Service unit tests
+- Frontend project/task UI (Kanban board, task detail, comments, file attachments)
+
+**Key Files Created (File Service):**
+
+```
+services/file-service/
+  ├── file-service.csproj
+  ├── Program.cs
+  ├── appsettings.example.json
+  ├── Models/
+  │   ├── File.cs
+  │   └── TaskAttachment.cs
+  ├── Data/
+  │   └── FileDbContext.cs
+  ├── Repositories/
+  │   ├── Interfaces/
+  │   │   ├── IFileRepository.cs
+  │   │   └── ITaskAttachmentRepository.cs
+  │   ├── FileRepository.cs
+  │   └── TaskAttachmentRepository.cs
+  ├── Services/
+  │   ├── Interfaces/
+  │   │   ├── IFileService.cs
+  │   │   ├── ITaskAttachmentService.cs
+  │   │   └── IKafkaProducerService.cs
+  │   ├── FileService.cs
+  │   ├── TaskAttachmentService.cs
+  │   └── KafkaProducerService.cs
+  ├── Controllers/
+  │   ├── FilesController.cs
+  │   └── TaskAttachmentsController.cs
+  ├── DTOs/
+  │   ├── ApiResponse.cs
+  │   ├── FileResponse.cs
+  │   ├── TaskAttachmentResponse.cs
+  │   └── AttachFileToTaskRequest.cs
+  ├── Validators/
+  │   ├── ValidationExtensions.cs
+  │   └── AttachFileToTaskRequestValidator.cs
+  ├── Extensions/
+  │   └── ControllerExtensions.cs
+  ├── Middleware/
+  │   └── GlobalExceptionHandlerMiddleware.cs
+  ├── README.md
+  └── .dockerignore
+```
+
+**Configuration Details (File Service):**
+
+- Database schema: `spm_file` with proper indexes and constraints
+- File storage: Docker volume mounted at `/app/storage`
+- Maximum file size: 100 MB (configurable)
+- JWT authentication: Required for all endpoints
+- Kafka events: `file.uploaded` published after successful upload
+- Soft delete: Files are marked as deleted, not physically removed immediately
 
 ### **Next Steps**
 

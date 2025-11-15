@@ -44,7 +44,7 @@ public class ProjectService : IProjectService
                 CreatedBy = userId
             };
 
-            _projects.CreateAsync(entity);
+            _ = _projects.CreateAsync(entity);
             await _db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 

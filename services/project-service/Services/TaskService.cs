@@ -53,7 +53,7 @@ public class TaskService : ITaskService
                 DueDate = request.DueDate
             };
 
-            _tasks.CreateAsync(entity);
+            _ = _tasks.CreateAsync(entity);
             await _db.SaveChangesAsync(cancellationToken);
 
             // Generate and save embedding (async, non-blocking)
@@ -90,7 +90,7 @@ public class TaskService : ITaskService
                 Embedding = embedding
             };
 
-            _taskEmbeddings.CreateOrUpdateAsync(taskEmbedding);
+            _ = _taskEmbeddings.CreateOrUpdateAsync(taskEmbedding);
             await _db.SaveChangesAsync(cancellationToken);
         }
         catch (Exception)
@@ -111,7 +111,7 @@ public class TaskService : ITaskService
 
             var oldStatus = entity.Status.ToString();
             entity.Status = request.Status;
-            _tasks.UpdateAsync(entity);
+            _ = _tasks.UpdateAsync(entity);
             await _db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
