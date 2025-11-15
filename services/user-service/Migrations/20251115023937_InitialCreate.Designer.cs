@@ -9,10 +9,10 @@ using user_service.Data;
 
 #nullable disable
 
-namespace userservice.Migrations
+namespace user_service.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    [Migration("20251110163142_InitialCreate")]
+    [Migration("20251115023937_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

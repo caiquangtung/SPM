@@ -8,7 +8,7 @@ using user_service.Data;
 
 #nullable disable
 
-namespace userservice.Migrations
+namespace user_service.Migrations
 {
     [DbContext(typeof(UserDbContext))]
     partial class UserDbContextModelSnapshot : ModelSnapshot
