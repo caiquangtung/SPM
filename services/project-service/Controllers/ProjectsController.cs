@@ -23,15 +23,18 @@ public class ProjectsController : ControllerBase
     {
         var userId = this.GetUserId();
         var result = await _projects.GetMyProjectsAsync(userId, cancellationToken);
-        return Ok(result);
+        return this.OkResponse(result, "Projects retrieved successfully");
     }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await _projects.GetByIdAsync(id, cancellationToken);
-        if (result == null) return NotFound();
-        return Ok(result);
+        if (result == null)
+        {
+            return this.NotFoundResponse("Project not found", "PROJECT_NOT_FOUND");
+        }
+        return this.OkResponse(result, "Project retrieved successfully");
     }
 
     [HttpPost]
@@ -39,7 +42,7 @@ public class ProjectsController : ControllerBase
     {
         var userId = this.GetUserId();
         var result = await _projects.CreateAsync(userId, request, cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        return this.CreatedResponse(nameof(GetById), new { id = result.Id }, result, "Project created successfully");
     }
 }
 

@@ -22,7 +22,7 @@ public class CommentsController : ControllerBase
     public async Task<IActionResult> GetByTask(Guid taskId, CancellationToken cancellationToken)
     {
         var result = await _comments.GetByTaskAsync(taskId, cancellationToken);
-        return Ok(result);
+        return this.OkResponse(result, "Comments retrieved successfully");
     }
 
     [HttpPost]
@@ -30,7 +30,7 @@ public class CommentsController : ControllerBase
     {
         var userId = this.GetUserId();
         var result = await _comments.CreateAsync(taskId, userId, request, cancellationToken);
-        return Ok(result);
+        return this.OkResponse(result, "Comment created successfully");
     }
 }
 

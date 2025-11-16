@@ -44,5 +44,13 @@ public static class ControllerExtensions
     {
         return controller.NotFound(ApiResponse.CreateFail(message, errorCode));
     }
+
+    /// <summary>
+    /// Returns a created response (201) with location header
+    /// </summary>
+    public static IActionResult CreatedResponse<T>(this ControllerBase controller, string actionName, object routeValues, T data, string message = "Resource created successfully")
+    {
+        return controller.CreatedAtAction(actionName, routeValues, ApiResponse<T>.CreateSuccess(data, message));
+    }
 }
 

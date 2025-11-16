@@ -22,7 +22,7 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> GetByProject([FromQuery] Guid projectId, CancellationToken cancellationToken)
     {
         var result = await _tasks.GetByProjectAsync(projectId, cancellationToken);
-        return Ok(result);
+        return this.OkResponse(result, "Tasks retrieved successfully");
     }
 
     [HttpPost]
@@ -30,21 +30,24 @@ public class TasksController : ControllerBase
     {
         var userId = this.GetUserId();
         var result = await _tasks.CreateAsync(userId, request, cancellationToken);
-        return CreatedAtAction(nameof(GetByProject), new { projectId = result.ProjectId }, result);
+        return this.CreatedResponse(nameof(GetByProject), new { projectId = result.ProjectId }, result, "Task created successfully");
     }
 
     [HttpPut("{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTaskStatusRequest request, CancellationToken cancellationToken)
     {
         var result = await _tasks.UpdateStatusAsync(id, request, cancellationToken);
-        if (result == null) return NotFound();
-        return Ok(result);
+        if (result == null)
+        {
+            return this.NotFoundResponse("Task not found", "TASK_NOT_FOUND");
+        }
+        return this.OkResponse(result, "Task status updated successfully");
     }
 
     [HttpPost("search")]
     public async Task<IActionResult> SearchSimilar([FromBody] SearchTasksRequest request, CancellationToken cancellationToken)
     {
         var results = await _tasks.SearchSimilarAsync(request, cancellationToken);
-        return Ok(results);
+        return this.OkResponse(results, "Search completed successfully");
     }
 }
