@@ -6,6 +6,7 @@ using project_service.DTOs.Tasks;
 using project_service.Models;
 using project_service.Repositories.Interfaces;
 using project_service.Services.Interfaces;
+using TaskStatusEnum = project_service.Models.TaskStatus;
 
 namespace project_service.Services;
 
@@ -31,9 +32,13 @@ public class TaskService : ITaskService
         _embeddingService = embeddingService;
     }
 
-    public async Task<IEnumerable<TaskResponse>> GetByProjectAsync(Guid projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TaskResponse>> GetByProjectAsync(
+        Guid projectId,
+        TaskStatusEnum? status = null,
+        Guid? assignedTo = null,
+        CancellationToken cancellationToken = default)
     {
-        var items = await _tasks.GetByProjectAsync(projectId, cancellationToken);
+        var items = await _tasks.GetByProjectAsync(projectId, status, assignedTo, cancellationToken);
         return items.Select(TaskResponse.FromEntity);
     }
 
@@ -63,6 +68,14 @@ public class TaskService : ITaskService
 
             // Publish event after transaction commit (fire-and-forget for performance)
             _ = _kafkaProducer.PublishTaskCreatedAsync(entity.Id, entity.ProjectId, userId, entity.Title);
+            if (entity.AssignedTo.HasValue)
+            {
+                _ = _kafkaProducer.PublishTaskAssignedAsync(
+                    entity.Id,
+                    entity.ProjectId,
+                    entity.AssignedTo.Value,
+                    userId);
+            }
 
             return TaskResponse.FromEntity(entity);
         }
@@ -178,5 +191,3 @@ public class TaskService : ITaskService
         }
     }
 }
-
-

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using project_service.Data;
 using project_service.Models;
 using project_service.Repositories.Interfaces;
+using TaskStatusEnum = project_service.Models.TaskStatus;
 
 namespace project_service.Repositories;
 
@@ -21,10 +22,26 @@ public class TaskRepository : ITaskRepository
             .FirstOrDefaultAsync(t => t.Id == taskId, cancellationToken);
     }
 
-    public async Task<IEnumerable<ProjectTask>> GetByProjectAsync(Guid projectId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ProjectTask>> GetByProjectAsync(
+        Guid projectId,
+        TaskStatusEnum? status = null,
+        Guid? assignedTo = null,
+        CancellationToken cancellationToken = default)
     {
-        return await _context.Tasks
-            .Where(t => t.ProjectId == projectId)
+        var query = _context.Tasks
+            .Where(t => t.ProjectId == projectId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(t => t.Status == status);
+        }
+
+        if (assignedTo.HasValue)
+        {
+            query = query.Where(t => t.AssignedTo == assignedTo);
+        }
+
+        return await query
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -42,5 +59,3 @@ public class TaskRepository : ITaskRepository
         return Task.FromResult(task);
     }
 }
-
-

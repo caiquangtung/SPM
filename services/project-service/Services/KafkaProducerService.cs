@@ -148,6 +148,31 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
         }
     }
 
+    public async Task PublishTaskAssignedAsync(Guid taskId, Guid projectId, Guid assignedTo, Guid assignedBy)
+    {
+        try
+        {
+            var message = new
+            {
+                TaskId = taskId,
+                ProjectId = projectId,
+                AssignedTo = assignedTo,
+                AssignedBy = assignedBy,
+                Timestamp = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(message);
+            var kafkaMessage = new Message<Null, string> { Value = json };
+
+            await _producer.ProduceAsync("task.assigned", kafkaMessage);
+            _logger.LogInformation("Published task.assigned event for task {TaskId}", taskId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish task.assigned event for task {TaskId}", taskId);
+        }
+    }
+
     public async Task PublishCommentCreatedAsync(Guid commentId, Guid taskId, Guid userId, string content)
     {
         try
@@ -191,4 +216,3 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
         }
     }
 }
-
