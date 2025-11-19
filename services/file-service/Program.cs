@@ -57,6 +57,9 @@ builder.Services.AddScoped<IKafkaProducerService, KafkaProducerService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ITaskAttachmentService, TaskAttachmentService>();
 
+// Register background services
+builder.Services.AddHostedService<TempFileCleanupService>();
+
 // Configure JWT Authentication
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>

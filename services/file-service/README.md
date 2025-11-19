@@ -62,9 +62,40 @@ The File Service handles:
 ## File Storage
 
 - Files are stored in a Docker volume mounted at `/app/storage`
+- Storage structure:
+  - `/app/storage/temp/` - Temporary location for files during upload
+  - `/app/storage/final/` - Final location for committed files
 - Each file is given a unique GUID-based filename to prevent conflicts
 - Original filenames are preserved in the database
 - Maximum file size: 100 MB (configurable)
+
+### Two-Phase Commit Upload Process
+
+The file upload process uses a two-phase commit pattern for efficiency and reliability:
+
+1. **Phase 1-2**: Validate file and generate unique filename
+2. **Phase 3**: Write file to temporary location (`/app/storage/temp/`) using streaming to save memory
+3. **Phase 4-6**: Begin database transaction, save metadata, and commit transaction
+4. **Phase 7**: Move file from temp to final location (`/app/storage/final/`) - this is a fast atomic operation
+5. **Phase 8**: Publish Kafka event
+6. **Error Handling**: If database commit fails, transaction rolls back and temp file is cleaned up
+
+**Benefits:**
+
+- **Fail Fast**: Database validation happens before final file move, avoiding unnecessary I/O for large files
+- **Efficiency**: If DB operation fails (e.g., constraint violation), we only delete a temp file instead of a large final file
+- **Atomic Move**: File move operation is fast (pointer change) and atomic on the same filesystem
+- **Fallback Strategy**: If move fails after DB commit, system attempts copy+delete as fallback
+
+### Performance Optimizations
+
+The file service includes several performance optimizations:
+
+1. **Adaptive Buffer Size**: Buffer size scales with file size (8KB - 1MB) to reduce I/O operations for large files
+2. **Streaming Downloads**: Files larger than 10MB are streamed instead of loaded into memory, reducing memory usage
+3. **Range Request Support**: Large file downloads support HTTP range requests for resumable downloads
+4. **Background Cleanup**: Automatic cleanup of orphaned temp files older than 24 hours (runs hourly)
+5. **Optimized FileStream Options**: Uses `SequentialScan`, `Asynchronous`, and `WriteThrough` flags for better I/O performance
 
 ## Database Schema
 

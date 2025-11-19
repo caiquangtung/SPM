@@ -63,7 +63,7 @@ public class FilesController : ControllerBase
     }
 
     /// <summary>
-    /// Download a file by ID
+    /// Download a file by ID (optimized for large files - uses streaming)
     /// </summary>
     [HttpGet("{id}/download")]
     public async Task<IActionResult> DownloadFile(Guid id)
@@ -74,6 +74,19 @@ public class FilesController : ControllerBase
             return this.NotFoundResponse("File not found", "FILE_NOT_FOUND");
         }
 
+        // For files larger than 10MB, use streaming for better memory efficiency
+        if (file.Size > 10 * 1024 * 1024)
+        {
+            var fileStream = await _fileService.GetFileStreamAsync(id);
+            if (fileStream == null)
+            {
+                return this.NotFoundResponse("File not found on disk", "FILE_NOT_FOUND");
+            }
+
+            return File(fileStream, file.MimeType, file.OriginalName, enableRangeProcessing: true);
+        }
+
+        // For smaller files, use in-memory download (backward compatible)
         var fileBytes = await _fileService.DownloadFileAsync(id);
         if (fileBytes == null)
         {
