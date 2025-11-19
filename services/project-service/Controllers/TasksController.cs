@@ -19,9 +19,14 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetByProject([FromQuery] Guid projectId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByProject([FromQuery] GetTasksQuery query, CancellationToken cancellationToken)
     {
-        var result = await _tasks.GetByProjectAsync(projectId, cancellationToken);
+        if (query.ProjectId == Guid.Empty)
+        {
+            return this.BadRequestResponse("projectId is required", "INVALID_PROJECT_ID");
+        }
+
+        var result = await _tasks.GetByProjectAsync(query.ProjectId, query.Status, query.AssignedTo, cancellationToken);
         return this.OkResponse(result, "Tasks retrieved successfully");
     }
 
