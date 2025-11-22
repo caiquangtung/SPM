@@ -357,7 +357,7 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
   - `GET /api/tasks/{taskId}/attachments` - Get task attachments
   - `DELETE /api/tasks/{taskId}/attachments/{attachmentId}` - Detach file
 - [x] Publish `file.uploaded` events
-- [ ] Write unit tests
+- [x] Write unit tests
 
 #### **Frontend Tasks**
 
