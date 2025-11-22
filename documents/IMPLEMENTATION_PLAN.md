@@ -17,7 +17,7 @@
 | **Frontend**         | Next.js (React)         | TypeScript, Tailwind CSS               |
 | **API Gateway**      | YARP (.NET 8)           | Routing, JWT auth, rate limiting       |
 | **Backend Services** | .NET 8 (ASP.NET Core)   | User, Project, File, Notification      |
-| **AI Service**       | Python (FastAPI)        | RAG pipeline, Gemini API               |
+| **AI Service**       | .NET 8 (ASP.NET Core)   | Semantic Kernel, Gemini API            |
 | **Database**         | **PostgreSQL 16+**      | Single DB, multiple schemas + pgvector |
 | **Message Broker**   | Apache Kafka            | Event-driven architecture              |
 | **Real-time**        | SignalR                 | WebSocket notifications                |
@@ -64,7 +64,8 @@
                  │
     ┌────────────▼────────────────────────────┐
     │      AI Service                         │
-    │      (Python + FastAPI)                 │
+    │      (.NET 8)                           │
+    │      - Semantic Kernel Integration      │
     │      - Gemini API integration           │
     │      - RAG pipeline                     │
     │      - Smart alerts                     │
@@ -126,7 +127,7 @@ spm_db/
 │   ├── project-service/       (.NET 8)
 │   ├── file-service/          (.NET 8)
 │   ├── notification-service/  (.NET 8)
-│   └── ai-service/            (Python + FastAPI)
+│   ├── ai-service/            (.NET 8)
 ├── frontend/                  (Next.js + TypeScript)
 ├── infrastructure/
 │   ├── docker/
@@ -273,7 +274,7 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
 **GitHub Actions workflows:**
 
 - `.github/workflows/build-dotnet.yml`
-- `.github/workflows/build-python.yml`
+- `.github/workflows/build-dotnet.yml`
 - `.github/workflows/build-frontend.yml`
 
 ---
@@ -413,23 +414,21 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
 
 #### **Backend Tasks**
 
-**AI Service (Python):**
+**AI Service (.NET 8):**
 
-- [x] Setup FastAPI với PostgreSQL (basic setup with placeholder)
-- [ ] Create Conversation, Message, Alert entities
-- [ ] Implement Gemini API client
-- [ ] Implement RAG pipeline:
-  - Generate query embedding
-  - Vector similarity search
-  - Context retrieval
-  - LLM generation
-- [ ] Implement prompt engineering for accuracy
+- [ ] Setup ASP.NET Core Web API project
+- [ ] Install `Microsoft.SemanticKernel` & `Microsoft.SemanticKernel.Connectors.Google`
+- [ ] Reuse `EmbeddingService` logic from Project Service (extract to shared lib or duplicate)
+- [ ] Create Conversation, Message, Alert entities (EF Core)
+- [ ] Implement RAG pipeline using Semantic Kernel:
+  - Memory store integration (PostgreSQL pgvector)
+  - Prompt template management
+  - Context orchestration
 - [ ] Create AIController:
   - `POST /api/ai/chat` - Chat endpoint
   - `POST /api/ai/generate-report` - Report generation
   - `GET /api/ai/alerts` - List alerts
-- [ ] Implement smart alerts background job
-- [ ] Sentiment analysis for comments
+- [ ] Implement smart alerts background job (HostedService)
 - [ ] Write unit tests
 
 #### **Frontend Tasks**
@@ -517,14 +516,15 @@ ALTER DATABASE spm_db SET search_path TO public, spm_user, spm_project, spm_file
 
 ✅ **Independent Scaling:**
 
-- AI Service có thể scale riêng
+- AI Service có thể scale riêng (CPU intensive)
 - Project Service có thể scale riêng
 - Others scale as needed
 
-✅ **Technology Flexibility:**
+✅ **Unified Technology Stack (.NET 8):**
 
-- AI Service dùng Python (ML libraries)
-- Others dùng .NET (consistency)
+- **Consistency:** Toàn bộ backend dùng .NET 8, giảm context switching cho team.
+- **Code Reuse:** Tái sử dụng logic (Authentication, Logging, EmbeddingService) giữa các service.
+- **DevOps:** Dùng chung CI/CD pipeline và Docker configuration.
 
 ✅ **Team Autonomy:**
 
