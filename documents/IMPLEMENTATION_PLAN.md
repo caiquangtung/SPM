@@ -746,11 +746,36 @@ frontend/
 - Added soft delete functionality for files
 - Created comprehensive README documentation
 
+**Frontend Progress** ✅
+
+**Project & Task Management UI:**
+
+- Created TypeScript types for Project, Task, Comment, File with enums (TaskStatus, TaskPriority)
+- Implemented API service helpers to unwrap `ApiResponse<T>` wrapper from backend
+- Created React Query hooks for all entities:
+  - Projects: `useProjects`, `useProject`, `useCreateProject`
+  - Tasks: `useTasks`, `useCreateTask`, `useUpdateTaskStatus`, `useSearchTasks`
+  - Comments: `useComments`, `useCreateComment`
+  - Files: `useFiles`, `useUploadFile`, `useTaskAttachments`, `useAttachFileToTask`, `useDetachFileFromTask`
+- Built reusable components:
+  - `TaskCard` - Task display card with status, priority, due date
+  - `TaskForm` - Create/edit task form with validation
+  - `KanbanBoard` - Drag-drop Kanban board using react-beautiful-dnd
+  - `TaskDetailModal` - Full task details with comments and file attachments
+  - `CommentSection` - Comments UI with create and list
+  - `FileUpload` - File upload component with task attachment support
+- Created pages:
+  - `/projects` - Projects list with create project form
+  - `/projects/[id]` - Project Kanban board view
+  - `/projects/[id]/list` - Tasks list view with filters
+- Integrated with backend APIs using standardized `ApiResponse<T>` pattern
+- Updated axios interceptor to handle wrapped responses for token refresh
+
 **Outstanding Work**
 
 - Project Service unit tests
 - File Service unit tests
-- Frontend project/task UI (Kanban board, task detail, comments, file attachments)
+- Frontend E2E tests
 
 **Key Files Created (File Service):**
 
@@ -806,13 +831,62 @@ services/file-service/
 - Kafka events: `file.uploaded` published after successful upload
 - Soft delete: Files are marked as deleted, not physically removed immediately
 
+**Key Files Created (Frontend - Sprint 2):**
+
+```
+frontend/
+  ├── types/
+  │   └── project.ts                    # Project, Task, Comment, File types
+  ├── lib/
+  │   ├── api-helpers.ts                 # ApiResponse unwrapper utilities
+  │   └── services/
+  │       ├── projects.ts                # Project API service
+  │       ├── tasks.ts                   # Task API service
+  │       ├── comments.ts                # Comment API service
+  │       └── files.ts                  # File API service
+  ├── features/
+  │   ├── projects/
+  │   │   └── hooks/
+  │   │       └── useProjects.ts        # Project React Query hooks
+  │   ├── tasks/
+  │   │   ├── hooks/
+  │   │   │   └── useTasks.ts           # Task React Query hooks
+  │   │   └── components/
+  │   │       ├── TaskCard.tsx
+  │   │       ├── TaskForm.tsx
+  │   │       ├── KanbanBoard.tsx
+  │   │       └── TaskDetailModal.tsx
+  │   ├── comments/
+  │   │   ├── hooks/
+  │   │   │   └── useComments.ts
+  │   │   └── components/
+  │   │       └── CommentSection.tsx
+  │   └── files/
+  │       ├── hooks/
+  │       │   └── useFiles.ts
+  │       └── components/
+  │           └── FileUpload.tsx
+  └── app/
+      └── projects/
+          ├── page.tsx                   # Projects list
+          └── [id]/
+              ├── page.tsx               # Kanban board
+              └── list/
+                  └── page.tsx           # List view
+```
+
+**Dependencies Added:**
+
+- `react-beautiful-dnd` - Drag-drop for Kanban board (deprecated but functional)
+- `date-fns` - Date formatting utilities
+
 ### **Next Steps**
 
 The following sprints are ready for implementation:
 
-1. **Sprint 2: Project & Task Management** - Implement project service with pgvector support
+1. **Sprint 2: Project & Task Management** - ✅ Backend & Frontend completed
 2. **Sprint 3: Notification System** - SignalR real-time notifications
-3. **Sprint 4: AI Service** - Python FastAPI service with Gemini integration
+3. **Sprint 4: AI Service** - .NET 8 service with Semantic Kernel & Gemini integration
 4. **Sprint 5: Polish & Testing** - Security, performance, and comprehensive testing
 
 ---

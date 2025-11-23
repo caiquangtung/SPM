@@ -18,9 +18,15 @@ export default function DashboardPage() {
           <div className="mt-8">
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold mb-4">Projects</h2>
-              <p className="text-gray-600">
-                No projects yet. Create your first project to get started.
+              <p className="text-gray-600 mb-4">
+                Manage your projects and tasks.
               </p>
+              <a
+                href="/projects"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                View Projects
+              </a>
             </div>
           </div>
         </div>

@@ -84,7 +84,9 @@ services:
   #     - api-gateway
 
   user-service:
-    build: ./services/user-service
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile.dev
     container_name: spm-user-service
     depends_on:
       postgres:
@@ -96,39 +98,54 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
       - Kafka__BootstrapServers=kafka:9092
       - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
       - JWT__Issuer=spm-api-gateway
       - JWT__Audience=spm-services
+    volumes:
+      # Mount source code for hot reload
+      - ./services/user-service:/app
+      - /app/bin
+      - /app/obj
     networks:
       - spm-network
 
-  # project-service: Not implemented yet
-  # Uncomment when service is ready
-  # project-service:
-  #   build: ./services/project-service
-  #   container_name: spm-project-service
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #   ports:
-  #     - "5002:8080"
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_URLS=http://+:8080
-  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
-  #     - Kafka__BootstrapServers=kafka:9092
-  #     - Gemini__ApiKey=${GEMINI_API_KEY}
-  #   networks:
-  #     - spm-network
-  #   profiles:
-  #     - project-service
+  project-service:
+    build:
+      context: ./services/project-service
+      dockerfile: Dockerfile.dev
+    container_name: spm-project-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "5002:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+      - Kafka__BootstrapServers=kafka:9092
+      - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
+      - JWT__Issuer=spm-api-gateway
+      - JWT__Audience=spm-services
+      - Gemini__ApiKey=${GEMINI_API_KEY:-}
+    volumes:
+      # Mount source code for hot reload
+      - ./services/project-service:/app
+      - /app/bin
+      - /app/obj
+    networks:
+      - spm-network
 
   file-service:
-    build: ./services/file-service
+    build:
+      context: ./services/file-service
+      dockerfile: Dockerfile.dev
     container_name: spm-file-service
     depends_on:
       postgres:
@@ -140,6 +157,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
       - Kafka__BootstrapServers=kafka:9092
       - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
@@ -147,6 +165,10 @@ services:
       - JWT__Audience=spm-services
       - FileStorage__Path=/app/storage
     volumes:
+      # Mount source code for hot reload
+      - ./services/file-service:/app
+      - /app/bin
+      - /app/obj
       - file_storage:/app/storage
     networks:
       - spm-network
@@ -191,16 +213,23 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost:5001
+      dockerfile: Dockerfile.dev
     container_name: spm-frontend
-    # depends_on:
-    #   - api-gateway  # Commented out because api-gateway not implemented yet
+    depends_on:
+      - user-service
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5001 # For runtime (but Next.js uses build-time value)
+      # Browser runs on host, so use localhost:5001 (not container network)
+      # This is the URL the browser will call, not the container
+      - NEXT_PUBLIC_API_URL=http://localhost:5001
       - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     networks:
       - spm-network
 

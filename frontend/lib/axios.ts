@@ -1,6 +1,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
+// Get API URL from environment or use default
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
 
 const apiClient = axios.create({
@@ -34,14 +35,26 @@ apiClient.interceptors.response.use(
           throw new Error("No refresh token");
         }
 
-        const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+        const response = await axios.post<{
+          success: boolean;
+          message: string;
+          data?: { accessToken: string; refreshToken: string };
+        }>(`${API_URL}/api/auth/refresh`, {
           refreshToken,
         });
 
-        const { accessToken } = response.data;
-        Cookies.set("access_token", accessToken, { expires: 1 });
+        // Unwrap ApiResponse<T>
+        const authData = response.data.data;
+        if (!authData) {
+          throw new Error("Invalid refresh response");
+        }
 
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        Cookies.set("access_token", authData.accessToken, { expires: 1 });
+        if (authData.refreshToken) {
+          Cookies.set("refresh_token", authData.refreshToken, { expires: 7 });
+        }
+
+        originalRequest.headers.Authorization = `Bearer ${authData.accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
         Cookies.remove("access_token");

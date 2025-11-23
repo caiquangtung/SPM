@@ -1,37 +1,63 @@
 import Cookies from "js-cookie";
 import apiClient from "./axios";
+import { unwrapResponse } from "./api-helpers";
 import type { User, AuthResponse } from "@/types/auth";
-
+import type { ApiResponse } from "@/types/project";
 
 export const authService = {
   async register(email: string, password: string, fullName?: string) {
-    const response = await apiClient.post<{
-      message: string;
-      userId: string;
-      verificationToken: string;
-    }>("/auth/register", { email, password, fullName });
-    return response.data;
+    const response = await apiClient.post<
+      ApiResponse<{
+        userId: string;
+      }>
+    >("/auth/register", { email, password, fullName });
+    return unwrapResponse(response);
   },
 
   async login(email: string, password: string) {
-    const response = await apiClient.post<AuthResponse>("/auth/login", {
-      email,
-      password,
-    });
+    try {
+      const response = await apiClient.post<ApiResponse<AuthResponse>>(
+        "/auth/login",
+        {
+          email,
+          password,
+        }
+      );
 
-    // Store tokens in cookies
-    Cookies.set("access_token", response.data.accessToken, { expires: 1 });
-    Cookies.set("refresh_token", response.data.refreshToken, { expires: 7 });
+      // Unwrap ApiResponse<T>
+      const authData = unwrapResponse(response);
 
-    return response.data;
+      // Handle both camelCase and PascalCase (defensive)
+      const accessToken = authData.accessToken || (authData as any).AccessToken;
+      const refreshToken =
+        authData.refreshToken || (authData as any).RefreshToken;
+      const user = authData.user || (authData as any).User;
+
+      if (!accessToken || !refreshToken) {
+        throw new Error("Invalid login response: missing tokens");
+      }
+
+      // Store tokens in cookies
+      Cookies.set("access_token", accessToken, { expires: 1 });
+      Cookies.set("refresh_token", refreshToken, { expires: 7 });
+
+      return {
+        accessToken,
+        refreshToken,
+        expiresAt: authData.expiresAt || (authData as any).ExpiresAt,
+        user: user || authData.user,
+      };
+    } catch (error) {
+      throw error;
+    }
   },
 
   async verifyEmail(token: string) {
-    const response = await apiClient.post<{ message: string }>(
+    const response = await apiClient.post<ApiResponse<string>>(
       "/auth/verify-email",
       { token }
     );
-    return response.data;
+    return unwrapResponse(response);
   },
 
   async refreshToken() {
@@ -40,14 +66,35 @@ export const authService = {
       throw new Error("No refresh token");
     }
 
-    const response = await apiClient.post<AuthResponse>("/auth/refresh", {
-      refreshToken,
-    });
+    const response = await apiClient.post<ApiResponse<AuthResponse>>(
+      "/auth/refresh",
+      {
+        refreshToken,
+      }
+    );
 
-    Cookies.set("access_token", response.data.accessToken, { expires: 1 });
-    Cookies.set("refresh_token", response.data.refreshToken, { expires: 7 });
+    // Unwrap ApiResponse<T>
+    const authData = unwrapResponse(response);
 
-    return response.data;
+    // Handle both camelCase and PascalCase (defensive)
+    const accessToken = authData.accessToken || (authData as any).AccessToken;
+    const refreshTokenValue =
+      authData.refreshToken || (authData as any).RefreshToken;
+    const user = authData.user || (authData as any).User;
+
+    if (!accessToken || !refreshTokenValue) {
+      throw new Error("Invalid refresh response: missing tokens");
+    }
+
+    Cookies.set("access_token", accessToken, { expires: 1 });
+    Cookies.set("refresh_token", refreshTokenValue, { expires: 7 });
+
+    return {
+      accessToken,
+      refreshToken: refreshTokenValue,
+      expiresAt: authData.expiresAt || (authData as any).ExpiresAt,
+      user: user || authData.user,
+    };
   },
 
   logout() {

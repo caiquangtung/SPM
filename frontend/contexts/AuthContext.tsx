@@ -50,7 +50,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.login(email, password);
       setUser(response.user);
-      router.push("/dashboard");
+      // Use replace to avoid adding to history stack
+      router.replace("/dashboard");
     } catch (error: any) {
       throw error;
     }

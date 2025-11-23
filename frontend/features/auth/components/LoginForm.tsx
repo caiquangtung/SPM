@@ -32,10 +32,14 @@ export default function LoginForm() {
         email: data.email,
         password: data.password,
       });
+      // Redirect is handled in AuthContext.login()
       toast.success("Đăng nhập thành công!");
-      router.push("/dashboard");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Đăng nhập thất bại");
+      const errorMessage =
+        error?.message ||
+        error?.response?.data?.message ||
+        "Đăng nhập thất bại";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
