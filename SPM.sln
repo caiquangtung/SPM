@@ -11,11 +11,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "project-service", "services
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "file-service", "services\file-service\file-service.csproj", "{83F523BF-12A7-45D8-882B-64AD78FA320F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "user-service.Tests", "services\user-service.Tests\user-service.Tests.csproj", "{449B90B4-C667-4D6C-ACA2-C6726C71B982}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "project-service.Tests", "services\project-service.Tests\project-service.Tests.csproj", "{B039052A-83EB-461F-8372-D20F54BA9234}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "user-service.Tests", "tests\user-service.Tests\user-service.Tests.csproj", "{449B90B4-C667-4D6C-ACA2-C6726C71B982}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "file-service.Tests", "services\file-service.Tests\file-service.Tests.csproj", "{4BEF732A-BE98-4A3D-B697-8481FC82D90E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "project-service.Tests", "tests\project-service.Tests\project-service.Tests.csproj", "{B039052A-83EB-461F-8372-D20F54BA9234}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "file-service.Tests", "tests\file-service.Tests\file-service.Tests.csproj", "{4BEF732A-BE98-4A3D-B697-8481FC82D90E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -107,9 +109,9 @@ GlobalSection(NestedProjects) = preSolution
 		{1EC1F255-01CC-EE54-E8F7-31E56805A0AE} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
 		{D7CF1AF3-2EE5-46D3-9EDD-C89B88F85C04} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
 		{83F523BF-12A7-45D8-882B-64AD78FA320F} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
-		{449B90B4-C667-4D6C-ACA2-C6726C71B982} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
-		{B039052A-83EB-461F-8372-D20F54BA9234} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
-		{4BEF732A-BE98-4A3D-B697-8481FC82D90E} = {5854FF58-B8C5-05C6-5BF2-ACE42193F22B}
+		{449B90B4-C667-4D6C-ACA2-C6726C71B982} = {A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{B039052A-83EB-461F-8372-D20F54BA9234} = {A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+		{4BEF732A-BE98-4A3D-B697-8481FC82D90E} = {A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {5C12EF6A-6C4A-4156-8154-00BE9C269C82}
