@@ -1,8 +1,8 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
-// Get API URL from environment or use default
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
+// Get API URL from environment or use default (API Gateway)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const apiClient = axios.create({
   baseURL: `${API_URL}/api`,

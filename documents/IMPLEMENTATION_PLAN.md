@@ -610,6 +610,20 @@ docker-compose up -d
 - Created GitHub Actions workflow for Next.js frontend
 - Added `.gitignore` and `.env.example`
 
+**Phase 6: API Gateway Setup** ✅
+
+- Created YARP API Gateway project (.NET 8)
+- Configured reverse proxy routing for all services:
+  - `/api/auth/**` → user-service (Anonymous)
+  - `/api/projects/**` → project-service (JWT required)
+  - `/api/tasks/**` → project-service (JWT required)
+  - `/api/files/**` → file-service (JWT required)
+- Implemented centralized JWT authentication validation
+- Configured CORS for frontend (`http://localhost:3000`)
+- Added Dockerfile.dev for hot reload support
+- Updated docker-compose.yml to enable API Gateway (port 5000)
+- Updated frontend to use API Gateway as single entry point
+
 **Key Files Created:**
 
 ```
@@ -619,6 +633,12 @@ infrastructure/kafka/topics-init.sh
 .github/workflows/build-dotnet.yml
 .github/workflows/build-python.yml
 .github/workflows/build-frontend.yml
+services/api-gateway/
+  ├── api-gateway.csproj
+  ├── Program.cs
+  ├── appsettings.json
+  ├── Dockerfile.dev
+  └── README.md
 services/*/Dockerfile (6 files)
 .gitignore
 .env.example
@@ -770,6 +790,7 @@ frontend/
   - `/projects/[id]/list` - Tasks list view with filters
 - Integrated with backend APIs using standardized `ApiResponse<T>` pattern
 - Updated axios interceptor to handle wrapped responses for token refresh
+- **Migrated to API Gateway**: Frontend now uses single entry point (`http://localhost:5000`) instead of calling services directly
 
 **Outstanding Work**
 

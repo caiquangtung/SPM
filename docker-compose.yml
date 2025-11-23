@@ -64,24 +64,34 @@ services:
   # api-gateway: Not implemented yet
   # Uncomment when service is ready
   # api-gateway:
-  #   build: ./services/api-gateway
-  #   container_name: spm-api-gateway
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #   ports:
-  #     - "5000:8080"
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_URLS=http://+:8080
-  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
-  #     - Kafka__BootstrapServers=kafka:9092
-  #   networks:
-  #     - spm-network
-  #   profiles:
-  #     - api-gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile.dev
+    container_name: spm-api-gateway
+    depends_on:
+      user-service:
+        condition: service_healthy
+      project-service:
+        condition: service_healthy
+      file-service:
+        condition: service_healthy
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
+      - JWT__Issuer=spm-api-gateway
+      - JWT__Audience=spm-services
+    volumes:
+      # Mount source code for hot reload
+      - ./services/api-gateway:/app
+      - /app/bin
+      - /app/obj
+    networks:
+      - spm-network
 
   user-service:
     build:
@@ -109,6 +119,16 @@ services:
       - ./services/user-service:/app
       - /app/bin
       - /app/obj
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/swagger/index.html || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - spm-network
 
@@ -139,6 +159,16 @@ services:
       - ./services/project-service:/app
       - /app/bin
       - /app/obj
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/swagger/index.html || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - spm-network
 
@@ -170,6 +200,16 @@ services:
       - /app/bin
       - /app/obj
       - file_storage:/app/storage
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/swagger/index.html || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - spm-network
 
@@ -216,13 +256,14 @@ services:
       dockerfile: Dockerfile.dev
     container_name: spm-frontend
     depends_on:
+      - api-gateway
       - user-service
     ports:
       - "3000:3000"
     environment:
-      # Browser runs on host, so use localhost:5001 (not container network)
-      # This is the URL the browser will call, not the container
-      - NEXT_PUBLIC_API_URL=http://localhost:5001
+      # Browser runs on host, so use localhost:5000 (API Gateway)
+      # API Gateway routes to all services
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
     volumes:
