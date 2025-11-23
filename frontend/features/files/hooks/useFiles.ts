@@ -14,14 +14,14 @@ export function useFiles() {
   });
 }
 
-/**
- * Upload a file
- */
-export function useUploadFile() {
-  const queryClient = useQueryClient();
+  /**
+   * Upload a file
+   */
+  export function useUploadFile() {
+    const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (file: File) => fileService.uploadFile(file),
+    return useMutation({
+      mutationFn: (file: globalThis.File) => fileService.uploadFile(file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
       toast.success("File uploaded successfully");

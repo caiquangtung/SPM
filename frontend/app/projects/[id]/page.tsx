@@ -13,7 +13,7 @@ import Link from "next/link";
 export default function ProjectKanbanPage() {
   const params = useParams();
   const router = useRouter();
-  const projectId = params.id as string;
+  const projectId = (params?.id as string) || "";
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: tasks, isLoading: tasksLoading } = useTasks({
@@ -100,4 +100,3 @@ export default function ProjectKanbanPage() {
     </div>
   );
 }
-

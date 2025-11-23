@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useProject } from "@/features/projects/hooks";
 import { useTasks, useCreateTask } from "@/features/tasks/hooks";
-import { TaskCard, TaskDetailModal, TaskForm } from "@/features/tasks/components";
+import {
+  TaskCard,
+  TaskDetailModal,
+  TaskForm,
+} from "@/features/tasks/components";
 import { Task, TaskStatus } from "@/types/project";
 import { Plus, Columns, Loader2, Filter } from "lucide-react";
 import Link from "next/link";
@@ -12,7 +16,7 @@ import Link from "next/link";
 export default function ProjectListPage() {
   const params = useParams();
   const router = useRouter();
-  const projectId = params.id as string;
+  const projectId = (params?.id as string) || "";
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const [statusFilter, setStatusFilter] = useState<TaskStatus | undefined>();
@@ -137,4 +141,3 @@ export default function ProjectListPage() {
     </div>
   );
 }
-
