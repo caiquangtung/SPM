@@ -19,6 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../file-service/file-service.csproj" />
+    <ProjectReference Include="../../services/project-service/project-service.csproj" />
   </ItemGroup>
 </Project>

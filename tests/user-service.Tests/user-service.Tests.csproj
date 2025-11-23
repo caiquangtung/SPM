@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../user-service/user-service.csproj" />
+    <ProjectReference Include="../../services/user-service/user-service.csproj" />
   </ItemGroup>
 </Project>
 
