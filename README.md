@@ -57,9 +57,20 @@ dotnet ef database update
 
 5. **Access the application:**
 
+- **API Gateway**: http://localhost:5000 (Single entry point - **USE THIS**)
 - Frontend: http://localhost:3000
-- API Gateway: http://localhost:5000
-- Swagger UI: http://localhost:5001/swagger (User Service)
+- Swagger UI (Direct access - dev only):
+  - User Service: http://localhost:5001/swagger
+  - Project Service: http://localhost:5002/swagger
+  - File Service: http://localhost:5003/swagger
+
+6. **Quick test API Gateway:**
+
+```bash
+# Run automated test
+cd services/api-gateway
+./quick-start.sh
+```
 
 ## 📁 Project Structure
 

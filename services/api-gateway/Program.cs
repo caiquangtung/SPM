@@ -29,7 +29,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy requires authenticated user
+    options.AddPolicy("Default", policy => policy.RequireAuthenticatedUser());
+
+    // Anonymous policy allows unauthenticated access
+    options.AddPolicy("Anonymous", policy => policy.RequireAssertion(_ => true));
+
+    // Fallback policy requires authentication by default
+    options.FallbackPolicy = options.GetPolicy("Default");
+});
 
 // Add CORS
 builder.Services.AddCors(options =>
