@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -31,14 +32,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
-    // Default policy requires authenticated user
-    options.AddPolicy("Default", policy => policy.RequireAuthenticatedUser());
+    // Authenticated policy requires authenticated user
+    options.AddPolicy("Authenticated", policy => policy.RequireAuthenticatedUser());
 
-    // Anonymous policy allows unauthenticated access
-    options.AddPolicy("Anonymous", policy => policy.RequireAssertion(_ => true));
+    // Public policy allows unauthenticated access
+    options.AddPolicy("Public", policy => policy.RequireAssertion(_ => true));
 
     // Fallback policy requires authentication by default
-    options.FallbackPolicy = options.GetPolicy("Default");
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
 });
 
 // Add CORS

@@ -2,9 +2,6 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0
 
 WORKDIR /app
 
-# Install dotnet-ef tool
-RUN dotnet tool install --global dotnet-ef && export PATH="$PATH:/root/.dotnet/tools"
-
 # Copy project file and restore dependencies
 COPY *.csproj ./
 RUN dotnet restore

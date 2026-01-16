@@ -77,7 +77,7 @@ services:
       file-service:
         condition: service_healthy
     ports:
-      - "5000:8080"
+      - "5010:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -263,7 +263,7 @@ services:
     environment:
       # Browser runs on host, so use localhost:5000 (API Gateway)
       # API Gateway routes to all services
-      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - NEXT_PUBLIC_API_URL=http://localhost:5010
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
     volumes:

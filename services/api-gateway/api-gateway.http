@@ -1,6 +1,203 @@
-@api_gateway_HostAddress = http://localhost:5062
+### API Gateway Test Collection
+### Base URL: http://localhost:5010 (API Gateway)
+### All requests route through the API Gateway
 
-GET {{api_gateway_HostAddress}}/weatherforecast/
-Accept: application/json
+@baseUrl = http://localhost:5010
+@accessToken = 
 
-###
+### ========================================
+### 1. USER SERVICE (via API Gateway)
+### ========================================
+
+### 1.1 Register New User (Anonymous - No Auth Required)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test@1234",
+  "fullName": "Test User"
+}
+
+### 1.2 Login (Anonymous - No Auth Required)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test@1234"
+}
+
+### 1.3 Extract Access Token (Run after login)
+@accessToken = {{login.response.body.data.accessToken}}
+
+### 1.4 Refresh Token (Anonymous - No Auth Required)
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.data.refreshToken}}"
+}
+
+### ========================================
+### 2. PROJECT SERVICE (via API Gateway)
+### ========================================
+
+### 2.1 Get My Projects (Requires JWT)
+GET {{baseUrl}}/api/projects
+Authorization: Bearer {{accessToken}}
+
+### 2.2 Create New Project (Requires JWT)
+# @name createProject
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "API Gateway Test Project",
+  "description": "Testing project creation through API Gateway"
+}
+
+### 2.3 Get Project by ID (Requires JWT)
+@projectId = {{createProject.response.body.data.id}}
+GET {{baseUrl}}/api/projects/{{projectId}}
+Authorization: Bearer {{accessToken}}
+
+### ========================================
+### 3. TASKS (via API Gateway → Project Service)
+### ========================================
+
+### 3.1 Get Tasks by Project (Requires JWT)
+GET {{baseUrl}}/api/tasks?projectId={{projectId}}
+Authorization: Bearer {{accessToken}}
+
+### 3.2 Create New Task (Requires JWT)
+# @name createTask
+POST {{baseUrl}}/api/tasks
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "projectId": "{{projectId}}",
+  "title": "Test task via API Gateway",
+  "description": "This task was created through the API Gateway",
+  "priority": "High",
+  "status": "ToDo",
+  "dueDate": "2026-01-15T00:00:00Z"
+}
+
+### 3.3 Update Task Status (Requires JWT)
+@taskId = {{createTask.response.body.data.id}}
+PUT {{baseUrl}}/api/tasks/{{taskId}}/status
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "status": "InProgress"
+}
+
+### 3.4 Search Similar Tasks - AI Feature (Requires JWT)
+POST {{baseUrl}}/api/tasks/search
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "query": "authentication and login implementation",
+  "topK": 5,
+  "projectId": "{{projectId}}"
+}
+
+### ========================================
+### 4. COMMENTS (via API Gateway → Project Service)
+### ========================================
+
+### 4.1 Get Task Comments (Requires JWT)
+GET {{baseUrl}}/api/tasks/{{taskId}}/comments
+Authorization: Bearer {{accessToken}}
+
+### 4.2 Add Comment to Task (Requires JWT)
+POST {{baseUrl}}/api/tasks/{{taskId}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "This is a test comment added through the API Gateway"
+}
+
+### ========================================
+### 5. FILE SERVICE (via API Gateway)
+### ========================================
+
+### 5.1 Get My Files (Requires JWT)
+GET {{baseUrl}}/api/files/my-files
+Authorization: Bearer {{accessToken}}
+
+### 5.2 Upload File (Requires JWT)
+# Note: Use Postman or curl for multipart/form-data
+# curl -X POST http://localhost:5000/api/files/upload \
+#   -H "Authorization: Bearer YOUR_TOKEN" \
+#   -F "file=@/path/to/file.txt"
+
+### 5.3 Attach File to Task (Requires JWT)
+POST {{baseUrl}}/api/tasks/{{taskId}}/attachments
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fileId": "replace-with-actual-file-id"
+}
+
+### 5.4 Get Task Attachments (Requires JWT)
+GET {{baseUrl}}/api/tasks/{{taskId}}/attachments
+Authorization: Bearer {{accessToken}}
+
+### ========================================
+### 6. AUTHORIZATION TESTS
+### ========================================
+
+### 6.1 Test Protected Route WITHOUT Token (Should Return 401)
+GET {{baseUrl}}/api/projects
+# No Authorization header - should fail
+
+### 6.2 Test Protected Route WITH Invalid Token (Should Return 401)
+GET {{baseUrl}}/api/projects
+Authorization: Bearer invalid-token-here
+
+### 6.3 Test Anonymous Route (Should Work Without Token)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "Test@1234"
+}
+
+### ========================================
+### 7. HEALTH CHECK (If implemented)
+### ========================================
+
+### 7.1 API Gateway Health
+GET {{baseUrl}}/health
+
+### ========================================
+### NOTES:
+### ========================================
+### 
+### 1. All routes starting with /api/auth/** are ANONYMOUS (no JWT required)
+### 2. All other routes require JWT Bearer token
+### 3. API Gateway validates JWT centrally - no service-level validation needed
+### 4. CORS is enabled for http://localhost:3000 (frontend)
+### 5. Gateway routes to:
+###    - /api/auth/** → user-service:8080
+###    - /api/projects/** → project-service:8080
+###    - /api/tasks/** → project-service:8080
+###    - /api/files/** → file-service:8080
+### 
+### Expected Responses:
+### - 200 OK: Success
+### - 201 Created: Resource created
+### - 400 Bad Request: Validation error
+### - 401 Unauthorized: Missing or invalid JWT
+### - 404 Not Found: Resource not found
+### - 500 Internal Server Error: Server error
