@@ -110,4 +110,28 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Apply pending migrations automatically (for development)
+if (app.Environment.IsDevelopment())
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ProjectDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        try
+        {
+            logger.LogInformation("Applying pending database migrations...");
+            db.Database.Migrate();
+            logger.LogInformation("Database migrations applied successfully.");
+
+            // Seed default data (development only)
+            SeedData.EnsureSeedData(db, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while applying database migrations.");
+            // Don't throw - allow service to start even if migrations fail
+        }
+    }
+}
+
 app.Run();

@@ -118,11 +118,15 @@ if (app.Environment.IsDevelopment())
     {
         var db = scope.ServiceProvider.GetRequiredService<FileDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         try
         {
             logger.LogInformation("Applying pending database migrations...");
             db.Database.Migrate();
             logger.LogInformation("Database migrations applied successfully.");
+
+            // Seed default data (development only)
+            SeedData.EnsureSeedData(db, logger, configuration);
         }
         catch (Exception ex)
         {

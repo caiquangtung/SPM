@@ -120,11 +120,15 @@ if (app.Environment.IsDevelopment())
     {
         var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
         try
         {
             logger.LogInformation("Applying pending database migrations...");
             db.Database.Migrate();
             logger.LogInformation("Database migrations applied successfully.");
+
+            // Seed default data (development only)
+            SeedData.EnsureSeedData(db, passwordService, logger);
         }
         catch (Exception ex)
         {
