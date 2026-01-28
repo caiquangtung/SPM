@@ -33,10 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
           return;
         }
-        const refreshed = await authService.refreshToken();
-        setUser(refreshed.user);
+
+        // Try to get current user - axios interceptor will handle token refresh if needed
+        const user = await authService.getCurrentUser();
+        setUser(user);
       } catch {
-        // If refresh fails, clear session silently
+        // If getCurrentUser fails, clear session silently
         authService.logout();
         setUser(null);
       } finally {

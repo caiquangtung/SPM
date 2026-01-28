@@ -110,6 +110,11 @@ export const authService = {
   getRefreshToken(): string | undefined {
     return Cookies.get("refresh_token");
   },
+
+  async getCurrentUser(): Promise<User> {
+    const response = await apiClient.get<ApiResponse<User>>("/auth/me");
+    return unwrapResponse(response);
+  },
 };
 
 export async function getServerSession(): Promise<User | null> {
