@@ -38,7 +38,7 @@ export default function KanbanBoard({
   // Don't render DnD until client-side mount
   if (!mounted) {
     return (
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 pb-4">
         {columns.map((column) => (
           <div
             key={column.id}
@@ -47,7 +47,7 @@ export default function KanbanBoard({
             <h3 className="font-semibold text-gray-900 mb-4">
               {column.title} ({tasksByStatus[column.id]?.length || 0})
             </h3>
-            <div className="min-h-[200px] space-y-2">
+            <div className="min-h-[200px] space-y-2 p-2  border-dashed border-gray-200 bg-white">
               {tasksByStatus[column.id]?.map((task) => (
                 <TaskCard
                   key={task.id}
@@ -90,7 +90,7 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-4 pb-4">
         {columns.map((column) => (
           <div
             key={column.id}
@@ -104,8 +104,10 @@ export default function KanbanBoard({
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`min-h-[200px] space-y-2 ${
-                    snapshot.isDraggingOver ? "bg-blue-50" : ""
+                  className={`min-h-[200px] space-y-2 p-2 rounded-lg border-2 border-dashed transition-colors ${
+                    snapshot.isDraggingOver
+                      ? "border-blue-400 bg-blue-50"
+                      : "border-gray-200 bg-white"
                   }`}
                 >
                   {tasksByStatus[column.id]?.map((task, index) => (

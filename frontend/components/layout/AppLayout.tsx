@@ -13,7 +13,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <ProtectedRoute>
       <div className="flex h-screen bg-gray-50">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-auto">
           <div className="lg:hidden h-16" /> {/* Spacer for mobile header */}
           {children}
         </main>
