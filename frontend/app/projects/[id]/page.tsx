@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { AppLayout } from "@/components/layout";
 import { useProject } from "@/features/projects/hooks";
-import { useTasks, useCreateTask } from "@/features/tasks/hooks";
+import { useTasks } from "@/features/tasks/hooks";
 import { KanbanBoard, TaskDetailModal } from "@/features/tasks/components";
 import { TaskForm } from "@/features/tasks/components";
 import { Task } from "@/types/project";
@@ -12,36 +13,39 @@ import Link from "next/link";
 
 export default function ProjectKanbanPage() {
   const params = useParams();
-  const router = useRouter();
   const projectId = (params?.id as string) || "";
 
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: tasks, isLoading: tasksLoading } = useTasks({
     projectId,
   });
-  const createTask = useCreateTask();
 
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   if (projectLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </AppLayout>
     );
   }
 
   if (!project) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-red-600">Project not found</p>
-      </div>
+      <AppLayout>
+        <div className="p-6 sm:p-8">
+          <p className="text-red-600">Project not found</p>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="p-6 sm:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
@@ -97,6 +101,7 @@ export default function ProjectKanbanPage() {
           onClose={() => setSelectedTask(null)}
         />
       )}
-    </div>
+      </div>
+    </AppLayout>
   );
 }

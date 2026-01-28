@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AppLayout } from "@/components/layout";
 import { useProjects, useCreateProject } from "@/features/projects/hooks";
 import { useRouter } from "next/navigation";
 import { Plus, Folder, Loader2 } from "lucide-react";
@@ -8,7 +9,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CreateProjectRequest } from "@/types/project";
-import { toast } from "sonner";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required").max(100),
@@ -50,14 +50,17 @@ export default function ProjectsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <AppLayout>
+      <div className="p-6 sm:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
         <button
@@ -166,7 +169,8 @@ export default function ProjectsPage() {
           </p>
         </div>
       )}
-    </div>
+      </div>
+    </AppLayout>
   );
 }
 
