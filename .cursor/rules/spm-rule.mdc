@@ -743,8 +743,10 @@ public class RegisterRequest
 - Use enums in Models for fixed, bounded sets (e.g., `UserRole` with `Admin`, `PM`, `Member`) for type-safety and refactorability.
 - Persist enums as strings in the database using EF Core `.HasConversion<string>()` to keep data readable and resilient to enum reordering.
 - Add CHECK constraints to enforce allowed values at the DB level (e.g., `role IN ('Admin','PM','Member')`).
+- **CRITICAL**: Configure JSON serialization to use strings instead of numbers by adding `JsonStringEnumConverter` in `Program.cs`.
 - Expose enums as strings at API boundaries (DTOs) and in JWT claims.
-- Example mapping:
+
+### Database Mapping Example
 
 ```csharp
 modelBuilder.Entity<User>(entity =>
@@ -757,7 +759,46 @@ modelBuilder.Entity<User>(entity =>
 });
 ```
 
-> Rationale: enums provide compile-time safety and clarity; string persistence keeps DB and clients simple.
+### JSON Serialization Configuration (REQUIRED)
+
+**ALWAYS add this to `Program.cs` in ALL services:**
+
+```csharp
+using System.Text.Json.Serialization;
+// ... other usings
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // REQUIRED: Serialize enums as strings instead of numbers
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+```
+
+### Why This is Critical
+
+Without `JsonStringEnumConverter`:
+- Backend returns enum values as numbers: `{ "status": 0, "priority": 2 }`
+- Frontend expects strings: `TaskStatus.ToDo = "ToDo"`
+- Result: **Frontend filtering/matching breaks** (e.g., Kanban board won't show tasks)
+
+With `JsonStringEnumConverter`:
+- Backend returns enum values as strings: `{ "status": "ToDo", "priority": "High" }`
+- Frontend receives expected format: matches TypeScript enum string values
+- Result: **Everything works correctly**
+
+### Frontend TypeScript Enum Pattern
+
+```typescript
+export enum TaskStatus {
+  ToDo = "ToDo",
+  InProgress = "InProgress",
+  InReview = "InReview",
+  Done = "Done",
+}
+```
+
+> **Rationale**: Enums provide compile-time safety and clarity; string persistence keeps DB and clients simple; string serialization ensures frontend/backend compatibility.
 
 ## ⚡ Async/Await Patterns
 
@@ -1134,6 +1175,38 @@ public async Task<FileResult> UploadFileAsync(IFormFile file, Guid userId)
 - No business logic
 
 ### Shared Patterns Across All Services
+
+#### Program.cs Configuration (REQUIRED for ALL Services)
+
+**Every .NET microservice MUST include this configuration in `Program.cs`:**
+
+```csharp
+using System.Text.Json.Serialization;
+// ... other usings
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // REQUIRED: Serialize enums as strings instead of numbers
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        
+        // Optional: Configure camelCase for property names (if needed)
+        // options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
+```
+
+**Why This is Required:**
+- Ensures enums are serialized as strings ("ToDo", "InProgress") not numbers (0, 1)
+- Frontend TypeScript enums expect string values
+- Without this, frontend filtering/matching will fail (e.g., Kanban board won't display tasks)
+- Maintains consistency across all services
+
+**Services Checklist:**
+- ✅ user-service
+- ✅ project-service
+- ✅ file-service
+- ⚠️ notification-service (verify)
+- ⚠️ api-gateway (if it returns DTOs)
 
 #### Kafka Event Publishing
 

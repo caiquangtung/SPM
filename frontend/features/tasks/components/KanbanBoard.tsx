@@ -1,6 +1,7 @@
 "use client";
 
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
+import { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Task, TaskStatus } from "@/types/project";
 import { useUpdateTaskStatus } from "../hooks";
 import TaskCard from "./TaskCard";
@@ -22,16 +23,52 @@ export default function KanbanBoard({
   onTaskClick,
 }: KanbanBoardProps) {
   const updateTaskStatus = useUpdateTaskStatus();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent SSR/hydration mismatch - render DnD only on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const tasksByStatus = columns.reduce((acc, column) => {
     acc[column.id] = tasks.filter((task) => task.status === column.id);
     return acc;
   }, {} as Record<TaskStatus, Task[]>);
 
+  // Don't render DnD until client-side mount
+  if (!mounted) {
+    return (
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {columns.map((column) => (
+          <div
+            key={column.id}
+            className="flex-shrink-0 w-80 bg-gray-50 rounded-lg p-4"
+          >
+            <h3 className="font-semibold text-gray-900 mb-4">
+              {column.title} ({tasksByStatus[column.id]?.length || 0})
+            </h3>
+            <div className="min-h-[200px] space-y-2">
+              {tasksByStatus[column.id]?.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onClick={() => onTaskClick?.(task)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
+    // Dropped outside the list
     if (!destination) return;
+    
+    // Dropped in the same position
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
@@ -42,6 +79,7 @@ export default function KanbanBoard({
     const newStatus = destination.droppableId as TaskStatus;
     const task = tasks.find((t) => t.id === draggableId);
 
+    // Only update if status actually changed
     if (task && task.status !== newStatus) {
       updateTaskStatus.mutate({
         taskId: draggableId,

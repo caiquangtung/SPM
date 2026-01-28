@@ -8,7 +8,7 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-2 text-gray-600">
@@ -16,8 +16,8 @@ export default function DashboardPage() {
           </p>
 
           <div className="mt-8">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Projects</h2>
+            <div className="bg-gray-50 shadow rounded-lg p-6 border border-gray-200">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">Projects</h2>
               <p className="text-gray-600 mb-4">
                 Manage your projects and tasks.
               </p>
