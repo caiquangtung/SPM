@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using user_service.DTOs;
 using user_service.Extensions;
@@ -67,6 +68,25 @@ public class AuthController : ControllerBase
     {
         var response = await _tokenManagementService.RefreshTokenAsync(request.RefreshToken);
         return this.OkResponse(response, "Token refreshed successfully");
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userId = this.GetCurrentUserId();
+        if (userId == null)
+        {
+            return this.UnauthorizedResponse("Invalid token", "INVALID_TOKEN");
+        }
+
+        var user = await _authService.GetCurrentUserAsync(userId.Value);
+        if (user == null)
+        {
+            return this.NotFoundResponse("User not found or inactive", "USER_NOT_FOUND");
+        }
+
+        return this.OkResponse(user, "User retrieved successfully");
     }
 }
 

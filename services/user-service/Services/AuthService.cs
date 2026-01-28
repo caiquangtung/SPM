@@ -81,6 +81,26 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<UserDto?> GetCurrentUserAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        
+        if (user == null || !user.IsActive)
+        {
+            return null;
+        }
+
+        return new UserDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            EmailConfirmed = user.EmailConfirmed,
+            FullName = user.FullName,
+            AvatarUrl = user.AvatarUrl,
+            Role = user.Role.ToString()
+        };
+    }
+
     // Registration and Login responsibilities have been moved to specialized services
 }
 

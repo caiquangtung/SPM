@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using user_service.DTOs;
 
@@ -5,6 +6,20 @@ namespace user_service.Extensions;
 
 public static class ControllerExtensions
 {
+    /// <summary>
+    /// Gets the current user ID from JWT claims
+    /// </summary>
+    public static Guid? GetCurrentUserId(this ControllerBase controller)
+    {
+        var userIdClaim = controller.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return null;
+        }
+
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
     /// <summary>
     /// Returns a successful API response with data
     /// </summary>
