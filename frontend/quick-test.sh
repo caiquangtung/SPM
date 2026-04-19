@@ -75,22 +75,22 @@ if [ -f ".env.local" ]; then
     echo -e "${GREEN}✓ .env.local exists${NC}"
     
     # Check API URL
-    if grep -q "NEXT_PUBLIC_API_URL=http://localhost:5000" .env.local; then
-        echo -e "${GREEN}✓ API URL points to API Gateway (port 5000)${NC}"
+    if grep -q "NEXT_PUBLIC_API_URL=http://localhost:5010" .env.local; then
+        echo -e "${GREEN}✓ API URL points to API Gateway (port 5010)${NC}"
     elif grep -q "NEXT_PUBLIC_API_URL=http://localhost:5001" .env.local; then
         echo -e "${YELLOW}⚠ API URL points to direct service (port 5001)${NC}"
         echo -e "${YELLOW}  Updating to use API Gateway...${NC}"
-        echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+        echo "NEXT_PUBLIC_API_URL=http://localhost:5010" > .env.local
         echo -e "${GREEN}✓ Updated to API Gateway${NC}"
     else
         echo -e "${YELLOW}⚠ API URL not configured${NC}"
-        echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+        echo "NEXT_PUBLIC_API_URL=http://localhost:5010" > .env.local
         echo -e "${GREEN}✓ Created .env.local with API Gateway URL${NC}"
     fi
 else
     echo -e "${YELLOW}⚠ .env.local not found${NC}"
     echo "Creating .env.local..."
-    echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
+    echo "NEXT_PUBLIC_API_URL=http://localhost:5010" > .env.local
     echo -e "${GREEN}✓ Created .env.local${NC}"
 fi
 echo ""
@@ -99,9 +99,11 @@ echo "Step 4: Checking backend services..."
 echo "------------------------------------"
 
 # Check if API Gateway is accessible
-echo -n "Checking API Gateway (http://localhost:5000)... "
-if curl -s -f -o /dev/null "http://localhost:5000" 2>/dev/null; then
-    echo -e "${GREEN}✓ UP${NC}"
+echo -n "Checking API Gateway (http://localhost:5010)... "
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5010" 2>/dev/null || echo "000")
+
+if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "401" ]; then
+    echo -e "${GREEN}✓ UP (${HTTP_STATUS})${NC}"
 else
     echo -e "${RED}✗ DOWN${NC}"
     echo ""

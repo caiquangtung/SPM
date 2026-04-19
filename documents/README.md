@@ -2,7 +2,7 @@
 
 **Hệ thống Web Quản lý Dự án và Theo dõi Tiến độ Thông minh**
 
-Version: 1.0 | Date: 28/10/2025
+Version: 1.1 | Date: 19/04/2026
 
 ---
 
@@ -164,15 +164,17 @@ docker-compose up -d
 
 ## 📝 Status
 
-**Current Phase:** Planning & Documentation Complete
+**Current Phase:** Delivery - Sprint 2 Complete, Sprint 3 Next
 
 **Next Steps:**
 
-- [ ] Setup project structure
-- [ ] Implement infrastructure (Docker, Kafka)
-- [ ] Build User Service
-- [ ] Build Project Service
-- [ ] Build AI Service
+- [x] Setup project structure
+- [x] Implement infrastructure (Docker, Kafka)
+- [x] Build User Service (Sprint 1)
+- [x] Build Project & File Services (Sprint 2 implementation)
+- [x] Complete Sprint 2 test pass and sign-off
+- [ ] Start Sprint 3 (Notification Service)
+- [ ] Start Sprint 4 (AI Service hardening/integration)
 
 ---
 
@@ -186,6 +188,6 @@ docker-compose up -d
 
 ---
 
-**Last Updated:** November 2, 2025
+**Last Updated:** April 19, 2026
 
-**Version:** 1.0
+**Version:** 1.1
