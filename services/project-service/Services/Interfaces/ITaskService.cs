@@ -11,6 +11,6 @@ public interface ITaskService
         Guid? assignedTo = null,
         CancellationToken cancellationToken = default);
     Task<TaskResponse> CreateAsync(Guid userId, CreateTaskRequest request, CancellationToken cancellationToken = default);
-    Task<TaskResponse?> UpdateStatusAsync(Guid taskId, UpdateTaskStatusRequest request, CancellationToken cancellationToken = default);
+    Task<TaskResponse?> UpdateStatusAsync(Guid userId, Guid taskId, UpdateTaskStatusRequest request, CancellationToken cancellationToken = default);
     Task<IEnumerable<SearchResult>> SearchSimilarAsync(SearchTasksRequest request, CancellationToken cancellationToken = default);
 }

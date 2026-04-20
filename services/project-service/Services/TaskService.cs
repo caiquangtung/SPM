@@ -114,7 +114,7 @@ public class TaskService : ITaskService
         }
     }
 
-    public async Task<TaskResponse?> UpdateStatusAsync(Guid taskId, UpdateTaskStatusRequest request, CancellationToken cancellationToken = default)
+    public async Task<TaskResponse?> UpdateStatusAsync(Guid userId, Guid taskId, UpdateTaskStatusRequest request, CancellationToken cancellationToken = default)
     {
         using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
@@ -129,7 +129,7 @@ public class TaskService : ITaskService
             await transaction.CommitAsync(cancellationToken);
 
             // Publish events after transaction commit (fire-and-forget for performance)
-            _ = _kafkaProducer.PublishTaskStatusChangedAsync(entity.Id, entity.ProjectId, oldStatus, request.Status.ToString());
+            _ = _kafkaProducer.PublishTaskStatusChangedAsync(entity.Id, entity.ProjectId, userId, oldStatus, request.Status.ToString());
             _ = _kafkaProducer.PublishTaskUpdatedAsync(entity.Id, entity.ProjectId, entity.CreatedBy, entity.Title);
 
             return TaskResponse.FromEntity(entity);

@@ -123,7 +123,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
         }
     }
 
-    public async Task PublishTaskStatusChangedAsync(Guid taskId, Guid projectId, string oldStatus, string newStatus)
+    public async Task PublishTaskStatusChangedAsync(Guid taskId, Guid projectId, Guid changedBy, string oldStatus, string newStatus)
     {
         try
         {
@@ -131,6 +131,7 @@ public class KafkaProducerService : IKafkaProducerService, IDisposable
             {
                 TaskId = taskId,
                 ProjectId = projectId,
+                ChangedBy = changedBy,
                 OldStatus = oldStatus,
                 NewStatus = newStatus,
                 Timestamp = DateTime.UtcNow

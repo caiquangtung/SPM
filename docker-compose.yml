@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U spm_user -d spm_db"]
+      test: [ "CMD-SHELL", "pg_isready -U spm_user -d spm_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -53,7 +53,8 @@ services:
       test:
         [
           "CMD-SHELL",
-          "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1",
+          "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit
+            1",
         ]
       interval: 30s
       timeout: 10s
@@ -120,11 +121,7 @@ services:
       - /app/bin
       - /app/obj
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://localhost:8080/swagger/index.html || exit 1",
-        ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -160,11 +157,7 @@ services:
       - /app/bin
       - /app/obj
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://localhost:8080/swagger/index.html || exit 1",
-        ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -201,11 +194,7 @@ services:
       - /app/obj
       - file_storage:/app/storage
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://localhost:8080/swagger/index.html || exit 1",
-        ]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -213,27 +202,40 @@ services:
     networks:
       - spm-network
 
-  # notification-service: Not implemented yet
-  # Uncomment when service is ready
-  # notification-service:
-  #   build: ./services/notification-service
-  #   container_name: spm-notification-service
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     kafka:
-  #       condition: service_healthy
-  #   ports:
-  #     - "5004:8080"
-  #   environment:
-  #     - ASPNETCORE_ENVIRONMENT=Development
-  #     - ASPNETCORE_URLS=http://+:8080
-  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
-  #     - Kafka__BootstrapServers=kafka:9092
-  #   networks:
-  #     - spm-network
-  #   profiles:
-  #     - notification-service
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile.dev
+    container_name: spm-notification-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "5004:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spm_db;Username=spm_user;Password=spm_pass
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=notification-service
+      - JWT__SecretKey=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
+      - JWT__Issuer=spm-api-gateway
+      - JWT__Audience=spm-services
+    volumes:
+      - ./services/notification-service:/app
+      - /app/bin
+      - /app/obj
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - spm-network
 
   # ai-service:
   #   build: ./services/ai-service
@@ -258,6 +260,7 @@ services:
     depends_on:
       - api-gateway
       - user-service
+      - notification-service
     ports:
       - "3000:3000"
     environment:

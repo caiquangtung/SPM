@@ -41,7 +41,8 @@ public class TasksController : ControllerBase
     [HttpPut("{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateTaskStatusRequest request, CancellationToken cancellationToken)
     {
-        var result = await _tasks.UpdateStatusAsync(id, request, cancellationToken);
+        var userId = this.GetUserId();
+        var result = await _tasks.UpdateStatusAsync(userId, id, request, cancellationToken);
         if (result == null)
         {
             return this.NotFoundResponse("Task not found", "TASK_NOT_FOUND");
