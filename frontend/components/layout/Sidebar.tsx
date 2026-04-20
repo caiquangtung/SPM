@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { useNotificationStats } from "@/features/notifications/hooks/useNotifications";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -15,6 +17,7 @@ import {
   X,
   ChevronDown,
   User,
+  Bell,
 } from "lucide-react";
 
 interface NavItem {
@@ -24,18 +27,25 @@ interface NavItem {
   badge?: number;
 }
 
-const navigation: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "Tasks", href: "/tasks", icon: CheckSquare },
-  { name: "Team", href: "/team", icon: Users },
-];
-
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { data: notificationStats } = useNotificationStats();
+
+  const navigation: NavItem[] = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Projects", href: "/projects", icon: FolderKanban },
+    { name: "Tasks", href: "/tasks", icon: CheckSquare },
+    {
+      name: "Notifications",
+      href: "/notifications",
+      icon: Bell,
+      badge: notificationStats?.unread || undefined,
+    },
+    { name: "Team", href: "/team", icon: Users },
+  ];
 
   const handleLogout = () => {
     logout();
@@ -59,16 +69,19 @@ export default function Sidebar() {
           </div>
           <span className="font-semibold text-gray-900">SPM</span>
         </div>
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-        >
-          {isMobileMenuOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Menu className="w-6 h-6" />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Overlay for mobile */}
@@ -89,14 +102,15 @@ export default function Sidebar() {
       >
         <div className="h-full w-64 bg-white border-r border-gray-200 flex flex-col">
           {/* Logo */}
-          <div className="h-16 flex items-center gap-3 px-6 border-b border-gray-200">
+          <div className="h-16 flex items-center justify-between gap-3 px-6 border-b border-gray-200">
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">
               S
             </div>
-            <div>
+            <div className="flex-1">
               <div className="font-bold text-gray-900 text-lg">SPM</div>
               <div className="text-xs text-gray-500">Project Manager</div>
             </div>
+            <NotificationBell />
           </div>
 
           {/* User info */}
